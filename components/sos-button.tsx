@@ -130,19 +130,23 @@ RESCUE NEEDED - User requires immediate assistance!`
         }),
       })
 
+      const responseData = await response.json()
+
       if (response.ok) {
-        console.log("SOS alert sent successfully via Twilio")
-        sendNativeSMS()
+        console.log("[v0] SOS alert processed successfully:", responseData)
       } else {
-        console.error("Failed to send SOS alert via Twilio")
-        sendNativeSMS()
+        console.warn("[v0] SOS processing returned:", response.status, responseData)
       }
+
+      // Always fallback to native SMS for redundancy
+      sendNativeSMS()
     } catch (error) {
-      console.error("Error sending SOS alert:", error)
+      console.error("[v0] Error sending SOS alert:", error)
+      console.log("[v0] Falling back to native SMS")
       sendNativeSMS()
 
       if (connectionStatus === "offline") {
-        console.log("Offline mode: SOS will be sent when connection is restored")
+        console.log("[v0] Offline mode: SOS will be sent when connection is restored")
       }
     }
   }

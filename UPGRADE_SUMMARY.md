@@ -84,7 +84,7 @@ This document summarizes the comprehensive upgrades to the SafeNet SOS app, incl
 - Offline queue synchronization
 
 **Key Methods**:
-```typescript
+\`\`\`typescript
 // SOS alert with Twilio fallback to native SMS
 sendSOS(data)
 
@@ -102,7 +102,7 @@ getWeather(lat, lng)
 
 // Sync offline queue
 syncOfflineQueue()
-```
+\`\`\`
 
 ### 3. **Offline Queue Management**
 
@@ -133,31 +133,31 @@ syncOfflineQueue()
 ### 5. **Error Handling & Fallbacks**
 
 **Strategy 1: SOS Alerts**
-```
+\`\`\`
 Primary: Twilio API
   → Fallback: Native SMS app
     → Fallback: Queue for offline
-```
+\`\`\`
 
 **Strategy 2: Data Fetching**
-```
+\`\`\`
 Primary: Live API call
   → Fallback: Cached data
     → Fallback: Error response
-```
+\`\`\`
 
 **Strategy 3: Location**
-```
+\`\`\`
 Primary: Real-time GPS
   → Fallback: Cached location (5min max)
     → Fallback: No location
-```
+\`\`\`
 
 ## Integration Guide
 
 ### Using the Fallback System
 
-```typescript
+\`\`\`typescript
 import { apiClient } from "@/lib/api-client"
 
 // Send SOS with automatic fallback
@@ -172,11 +172,11 @@ if (response.success) {
   console.log(`SOS sent via ${response.source}`)
   // source: "primary" | "fallback" | "offline"
 }
-```
+\`\`\`
 
 ### Handling Offline Operations
 
-```typescript
+\`\`\`typescript
 // System automatically queues offline operations
 // When connection restored, automatically syncs
 const status = fallbackSystem.getQueueStatus()
@@ -184,11 +184,11 @@ console.log(`${status.queued} operations pending`)
 
 // Manual sync (usually not needed)
 await apiClient.syncOfflineQueue()
-```
+\`\`\`
 
 ### Checking Connection Status
 
-```typescript
+\`\`\`typescript
 import { fallbackSystem } from "@/lib/fallback-system"
 
 if (fallbackSystem.isConnected()) {
@@ -196,7 +196,7 @@ if (fallbackSystem.isConnected()) {
 } else {
   // Offline - use cached/queued
 }
-```
+\`\`\`
 
 ## Performance Improvements
 

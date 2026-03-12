@@ -23,7 +23,7 @@ interface UserData {
   medicalConditions: string
 }
 
-export default function UserProfileHeader() {
+export function UserProfileHeader() {
   const router = useRouter()
   const [user, setUser] = useState<UserData | null>(null)
   const [locationStatus, setLocationStatus] = useState<"granted" | "denied" | "prompt">("prompt")

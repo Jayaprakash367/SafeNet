@@ -40,7 +40,7 @@ The SafeNet backend fallback system provides comprehensive redundancy, offline s
 
 ### SOS Alert Flow
 
-```
+\`\`\`
 User presses SOS button
     ↓
 Primary: Send via Twilio API
@@ -52,23 +52,23 @@ Queue: Store for offline retry
 When connection restored
     ↓
 Sync: Retry all queued operations
-```
+\`\`\`
 
 ### Retry Logic with Exponential Backoff
 
-```
+\`\`\`
 Attempt 1: Immediate (0ms)
 Attempt 2: Wait 1 second
 Attempt 3: Wait 2 seconds
 Attempt 4: Wait 5 seconds
 Attempt 5: Wait 10 seconds
-```
+\`\`\`
 
 ## Usage Examples
 
 ### Basic API Call with Fallback
 
-```typescript
+\`\`\`typescript
 import { apiClient } from "@/lib/api-client"
 
 // Automatic fallback to cache
@@ -76,11 +76,11 @@ const response = await apiClient.call("/api/disaster-alerts", {
   cache: true,
   cacheTTL: 10 * 60 * 1000, // 10 minutes
 })
-```
+\`\`\`
 
 ### Send SOS Alert
 
-```typescript
+\`\`\`typescript
 const response = await apiClient.sendSOS({
   userId: "user-123",
   location: { lat: 28.7041, lng: 77.1025 },
@@ -93,11 +93,11 @@ const response = await apiClient.sendSOS({
 //   data: { sosId: "SOS_123456" },
 //   source: "primary" | "fallback" | "offline"
 // }
-```
+\`\`\`
 
 ### Get User Location with Fallback
 
-```typescript
+\`\`\`typescript
 // Primary: Real-time GPS
 // Fallback: Cached location
 const response = await apiClient.getLocation()
@@ -106,11 +106,11 @@ if (response.success) {
   console.log(`Location: ${response.data.latitude}, ${response.data.longitude}`)
   console.log(`Source: ${response.data.source}`) // "gps" or "cached"
 }
-```
+\`\`\`
 
 ### Sync Offline Operations
 
-```typescript
+\`\`\`typescript
 // Automatically called when connection is restored
 // Can also be called manually:
 await apiClient.syncOfflineQueue()
@@ -118,7 +118,7 @@ await apiClient.syncOfflineQueue()
 // Check queue status
 const status = fallbackSystem.getQueueStatus()
 // { queued: 2, isOnline: true, timestamp: 123456789 }
-```
+\`\`\`
 
 ## Fallback Strategies
 
@@ -126,58 +126,58 @@ const status = fallbackSystem.getQueueStatus()
 
 **Used for**: SOS alerts, emergency notifications
 
-```
+\`\`\`
 Primary: Send via Twilio API
   ↓ (fail)
 Fallback: Use native SMS app (sms: protocol)
   ↓ (fail or offline)
 Queue: Store for later retry
-```
+\`\`\`
 
 ### Strategy 2: Direct API → Cached Data
 
 **Used for**: Disaster alerts, weather data, resource information
 
-```
+\`\`\`
 Primary: Fetch from API
   ↓ (fail)
 Fallback: Return cached data (if available)
   ↓ (no cache)
 Queue: Return error, don't queue
-```
+\`\`\`
 
 ### Strategy 3: GPS → Cached Location
 
 **Used for**: User location tracking
 
-```
+\`\`\`
 Primary: Get real-time GPS
   ↓ (timeout or denied)
 Fallback: Use cached location (5 min old max)
   ↓ (no cache)
 Return: null location, continue app
-```
+\`\`\`
 
 ## Configuration
 
 ### API Client Options
 
-```typescript
+\`\`\`typescript
 interface APIClientOptions {
   timeout?: number       // Request timeout in ms (default: 15000)
   retries?: number       // Max retry attempts (default: 3)
   cache?: boolean        // Enable caching (default: true)
   cacheTTL?: number      // Cache time-to-live in ms (default: 5 min)
 }
-```
+\`\`\`
 
 ### Retry Delays
 
 Edit in `lib/fallback-system.ts`:
 
-```typescript
+\`\`\`typescript
 private retryDelays = [1000, 2000, 5000, 10000] // ms between retries
-```
+\`\`\`
 
 ## Storage
 
@@ -198,7 +198,7 @@ private retryDelays = [1000, 2000, 5000, 10000] // ms between retries
 
 ### Network Errors
 
-```typescript
+\`\`\`typescript
 try {
   const response = await apiClient.sendSOS(data)
   if (!response.success) {
@@ -211,16 +211,16 @@ try {
   // Should not happen - system handles all errors
   console.error("Unexpected error:", error)
 }
-```
+\`\`\`
 
 ### Connection Status
 
-```typescript
+\`\`\`typescript
 import { fallbackSystem } from "@/lib/fallback-system"
 
 const isOnline = fallbackSystem.isConnected()
 const { queued, isOnline } = fallbackSystem.getQueueStatus()
-```
+\`\`\`
 
 ## Offline Capabilities
 
@@ -243,7 +243,7 @@ const { queued, isOnline } = fallbackSystem.getQueueStatus()
 
 ### Enable Debug Logs
 
-```typescript
+\`\`\`typescript
 // All operations log with "[v0]" prefix
 // Check browser console for operation flow
 [v0] Location access granted
@@ -251,22 +251,22 @@ const { queued, isOnline } = fallbackSystem.getQueueStatus()
 [v0] Attempting fallback for /api/sos
 [v0] Using cached result for disaster-alerts
 [v0] Syncing 2 offline operations
-```
+\`\`\`
 
 ### Check Queue Status
 
-```typescript
+\`\`\`typescript
 // In browser console
 import { fallbackSystem } from "@/lib/fallback-system"
 console.log(fallbackSystem.getQueueStatus())
-```
+\`\`\`
 
 ### Clear Cache and Queue
 
-```typescript
+\`\`\`typescript
 fallbackSystem.clearCache() // Clear all caches
 localStorage.removeItem("safenet-offline-queue") // Clear queue
-```
+\`\`\`
 
 ## Testing
 
@@ -281,21 +281,21 @@ localStorage.removeItem("safenet-offline-queue") // Clear queue
 
 ### Test Retry Logic
 
-```typescript
+\`\`\`typescript
 // Add delay to simulate slow network
 // Edit API endpoint to fail 3 times then succeed
 // Verify exponential backoff in console logs
-```
+\`\`\`
 
 ### Test Cache
 
-```typescript
+\`\`\`typescript
 // Call same endpoint twice
 // First call: source: "primary"
 // Second call: source: "primary" (from cache)
 // Wait past TTL
 // Third call: source: "primary" (cache expired)
-```
+\`\`\`
 
 ## Performance Impact
 

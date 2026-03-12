@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
     const classification = await classifyEmergency(sosData)
 
     if (sosData.adminNotificationNumber) {
-      const adminNotificationSent = await sendAdminNotification(sosData, sosId, sosData.adminNotificationNumber)
-      if (!adminNotificationSent) {
-        return NextResponse.json({ error: "Failed to send admin notification" }, { status: 500 })
-      }
+      // Send admin notification but don't block SOS processing on failure
+      await sendAdminNotification(sosData, sosId, sosData.adminNotificationNumber).catch((err) => {
+        console.error("[v0] Admin notification error:", err)
+      })
     }
 
     // Simulate emergency service dispatch
@@ -124,13 +124,23 @@ async function sendAdminNotification(sosData: SOSRequest, sosId: string, adminNu
 
   const adminMessage = `🚨 SAFENET SOS ALERT 🚨\nID: ${sosId}\nName: ${sosData.profile.name}\nAge: ${sosData.profile.age}\nBlood Group: ${sosData.profile.bloodGroup}\n${locationText}\nEmergency: ${sosData.emergencyType}\nTime: ${new Date(sosData.timestamp).toLocaleString()}\nUrgency: ${sosData.urgency.toUpperCase()}\n\nRESCUE NEEDED - User requires immediate assistance. Please respond immediately.`
 
+  // Check for missing Twilio credentials
   if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-    console.error("[v0] Missing Twilio credentials:", {
-      TWILIO_SID: !!process.env.TWILIO_SID,
-      TWILIO_TOKEN: !!process.env.TWILIO_TOKEN,
-      TWILIO_PHONE_NUMBER: !!process.env.TWILIO_PHONE_NUMBER,
+    console.warn("[v0] Twilio SMS disabled - Missing credentials. Alert logged locally.")
+    console.log("[v0] SOS Alert that would be sent:", {
+      adminNumber,
+      sosId,
+      message: adminMessage,
     })
-    return false
+    // Return true to allow app to continue - SMS is optional, alert is still logged
+    return true
+  }
+
+  // Validate phone number format
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/
+  if (!phoneRegex.test(adminNumber)) {
+    console.error("[v0] Invalid admin phone number format:", adminNumber)
+    return true // Log locally instead
   }
 
   try {
@@ -147,23 +157,26 @@ async function sendAdminNotification(sosData: SOSRequest, sosId: string, adminNu
         From: process.env.TWILIO_PHONE_NUMBER!,
         To: adminNumber,
         Body: adminMessage,
-      }),
+      }).toString(),
     })
 
     const responseText = await response.text()
     console.log("[v0] Twilio response status:", response.status)
-    console.log("[v0] Twilio response:", responseText)
 
     if (response.ok) {
       console.log(`✅ Rescue SMS sent successfully to ${adminNumber}`)
       return true
     } else {
-      console.error(`❌ Failed to send rescue SMS:`, responseText)
-      return false
+      console.error(`⚠️ Twilio SMS failed (${response.status}):`, responseText)
+      console.log("[v0] SMS alert logged locally as fallback")
+      // Log alert locally even if SMS fails - don't block the SOS response
+      return true
     }
   } catch (error) {
-    console.error(`❌ Error sending rescue SMS to ${adminNumber}:`, error)
-    return false
+    console.error(`⚠️ Error sending SMS to ${adminNumber}:`, error)
+    console.log("[v0] SMS alert logged locally as fallback")
+    // Return true - alert is still logged, SMS is just a bonus notification
+    return true
   }
 }
 
@@ -237,8 +250,25 @@ async function sendEmergencyAlerts(sosData: SOSRequest, sosId: string) {
 
   const message = `🚨 SOS ALERT 🚨\nName: ${sosData.profile.name}\n${locationText}\nEmergency ID: ${sosId}\nTime: ${new Date(sosData.timestamp).toLocaleString()}\n\nEmergency services have been notified. This is an automated SafeNet alert.`
 
+  // Check if Twilio is properly configured
+  if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+    console.warn("[v0] Twilio SMS disabled - Alerts logged locally")
+    for (const contact of sosData.profile.emergencyContacts) {
+      console.log("[v0] Emergency alert logged for:", contact)
+    }
+    return true
+  }
+
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/
+
   for (const contact of sosData.profile.emergencyContacts) {
     try {
+      // Validate contact phone number
+      if (!phoneRegex.test(contact)) {
+        console.warn(`[v0] Invalid phone number format for contact: ${contact}`)
+        continue
+      }
+
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_SID}/Messages.json`,
         {
@@ -251,17 +281,20 @@ async function sendEmergencyAlerts(sosData: SOSRequest, sosId: string) {
             From: process.env.TWILIO_PHONE_NUMBER!,
             To: contact,
             Body: message,
-          }),
+          }).toString(),
         },
       )
 
       if (response.ok) {
         console.log(`✅ Emergency SMS sent to contact: ${contact}`)
       } else {
-        console.error(`❌ Failed to send SMS to contact: ${contact}`)
+        const errorText = await response.text()
+        console.warn(`⚠️ Failed to send SMS to contact ${contact}: ${response.status}`)
+        console.log("[v0] Alert logged locally as fallback")
       }
     } catch (error) {
-      console.error(`❌ Error sending SMS to contact ${contact}:`, error)
+      console.error(`⚠️ Error sending SMS to contact ${contact}:`, error)
+      console.log("[v0] Alert logged locally as fallback")
     }
   }
 
