@@ -3,22 +3,22 @@
 ## 🚀 Get Started in 5 Minutes
 
 ### Step 1: Install (30 seconds)
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 ### Step 2: Configure Environment (1 minute)
 Create `.env.local`:
-```env
+\`\`\`env
 TWILIO_SID=your_twilio_sid
 TWILIO_TOKEN=your_twilio_token
 TWILIO_PHONE_NUMBER=+1234567890
-```
+\`\`\`
 
 ### Step 3: Run (30 seconds)
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 ### Step 4: Access (30 seconds)
 - Dashboard: http://localhost:3000
@@ -104,14 +104,14 @@ npm run dev
 
 ## 🛠️ Development Commands
 
-```bash
+\`\`\`bash
 # Development
 npm run dev           # Start dev server
 npm run build        # Build for production
 npm start            # Start production server
 npm run lint         # Run linter
 npm test             # Run tests (when available)
-```
+\`\`\`
 
 ---
 
@@ -178,7 +178,7 @@ npm test             # Run tests (when available)
 
 ## 📊 Test Results Summary
 
-```
+\`\`\`
 Total Tests: 24
 Passed: 22 ✓
 Failed: 0
@@ -191,33 +191,33 @@ By Category:
 ✓ Location: 3/3
 ✓ Offline: 3/3
 ✓ Security: 3/3
-```
+\`\`\`
 
 ---
 
 ## 🌍 Deployment
 
 ### Vercel (Recommended)
-```bash
+\`\`\`bash
 # One-time setup
 vercel login
 vercel link
 
 # Deploy
 vercel deploy
-```
+\`\`\`
 
 ### Self-Hosted
-```bash
+\`\`\`bash
 npm run build
 npm start
-```
+\`\`\`
 
 ### Docker
-```bash
+\`\`\`bash
 docker build -t safenet .
 docker run -p 3000:3000 safenet
-```
+\`\`\`
 
 ---
 

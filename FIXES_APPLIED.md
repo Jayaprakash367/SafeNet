@@ -2,9 +2,9 @@
 
 ## Issue Identified
 The application had custom Tailwind component classes defined in `app/globals.css` that were not being properly recognized by the Tailwind JIT compiler, causing runtime errors:
-```
+\`\`\`
 Unhandled promise rejection: Error: Cannot apply unknown utility class `transition-smooth`
-```
+\`\`\`
 
 ## Root Cause
 Custom classes defined in `@layer components` in globals.css include:
@@ -21,13 +21,13 @@ While these are defined, Tailwind's JIT compiler has issues resolving them when 
 ## Solutions Applied
 
 ### 1. **Replaced Custom Transition Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="transition-smooth"
 
 // NEW
 className="transition-all duration-300 ease-out"
-```
+\`\`\`
 
 Files updated:
 - `app/login/page.tsx`
@@ -37,7 +37,7 @@ Files updated:
 - `components/enterprise-dashboard.tsx`
 
 ### 2. **Replaced Custom Animation Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="animate-slide-in"
 className="animate-fade-scale"
@@ -45,10 +45,10 @@ className="animate-fade-scale"
 // NEW
 className="animate-in slide-in-from-top duration-300"
 className="animate-in fade-in zoom-in-95 duration-300"
-```
+\`\`\`
 
 ### 3. **Replaced Custom Shadow Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="card-shadow"
 className="card-shadow-lg"
@@ -56,19 +56,19 @@ className="card-shadow-lg"
 // NEW
 className="shadow-md"
 className="shadow-lg"
-```
+\`\`\`
 
 ### 4. **Replaced Custom Hover Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="card-hover"
 
 // NEW
 className="transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-0.5"
-```
+\`\`\`
 
 ### 5. **Replaced Custom Gradient Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="text-gradient-disaster"
 className="bg-gradient-disaster"
@@ -76,28 +76,28 @@ className="bg-gradient-disaster"
 // NEW
 className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent"
 className="bg-gradient-to-br from-primary via-secondary to-accent"
-```
+\`\`\`
 
 ### 6. **Replaced Custom Text Shadow Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="text-shadow-subtle"
 
 // NEW
 style={{textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'}}
-```
+\`\`\`
 
 ### 7. **Fixed Glass Effect Classes** (All Files)
-```js
+\`\`\`js
 // OLD
 className="glass-effect"
 
 // NEW
 className="backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border border-gray-200/50 dark:border-slate-700/50"
-```
+\`\`\`
 
 ### 8. **Fixed button-group Class in globals.css**
-```css
+\`\`\`css
 /* OLD - Referenced undefined class */
 .button-group {
   @apply flex gap-2 transition-smooth;
@@ -107,11 +107,11 @@ className="backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border border-gray-
 .button-group {
   @apply flex gap-2 transition-all duration-300 ease-out;
 }
-```
+\`\`\`
 
 ### 9. **Fixed next.config.mjs Headers**
 Added proper headers configuration to ensure service worker and manifest files are served with correct MIME types:
-```js
+\`\`\`js
 headers: async () => {
   return [
     {
@@ -125,7 +125,7 @@ headers: async () => {
     },
   ]
 }
-```
+\`\`\`
 
 ## Files Modified
 

@@ -117,7 +117,7 @@ Implemented Animations:
 
 ## Project Structure
 
-```
+\`\`\`
 safenet-sos-app/
 ├── app/
 │   ├── page.tsx                 # Professional main dashboard
@@ -152,7 +152,7 @@ safenet-sos-app/
 ├── DEPLOYMENT_VERIFICATION.md    # Production verification
 ├── UPGRADE_SUMMARY.md            # Design summary
 └── PROJECT_SUMMARY.md            # This file
-```
+\`\`\`
 
 ---
 
@@ -198,7 +198,7 @@ safenet-sos-app/
 ## Design System Details
 
 ### Professional Color Palette
-```css
+\`\`\`css
 Light Mode:
 - Background: #f8f9fa (Clean white)
 - Foreground: #1a1f35 (Deep navy)
@@ -212,7 +212,7 @@ Dark Mode:
 - Primary: #ff4656 (Bright red for visibility)
 - Secondary: #4a90e2 (Bright blue)
 - Accent: #ff6b35 (Bright orange)
-```
+\`\`\`
 
 ### Typography
 - Primary Font: System fonts (optimized for performance)
@@ -231,7 +231,7 @@ Dark Mode:
 ## Getting Started
 
 ### Installation
-```bash
+\`\`\`bash
 # Clone the repository
 git clone https://github.com/yourusername/safenet.git
 cd safenet
@@ -247,7 +247,7 @@ TWILIO_PHONE_NUMBER=your_twilio_phone
 
 # Run development server
 npm run dev
-```
+\`\`\`
 
 ### Access the Application
 - Dashboard: http://localhost:3000
@@ -263,14 +263,14 @@ npm run dev
 ## Testing
 
 ### Run All Tests
-```javascript
+\`\`\`javascript
 // In browser console or backend:
 import { backendTests, generateTestReport } from '@/lib/backend-tests'
 
 const results = await backendTests.runAllTests()
 const report = generateTestReport(results)
 console.log(report)
-```
+\`\`\`
 
 ### Test Categories
 1. Authentication (Session & Token Management)
@@ -290,19 +290,19 @@ console.log(report)
 - Optional: Supabase/Neon account (for production database)
 
 ### Deploy to Vercel (Recommended)
-```bash
+\`\`\`bash
 npm install -g vercel
 vercel login
 vercel deploy
-```
+\`\`\`
 
 ### Environment Variables
 Set these in your deployment platform:
-```
+\`\`\`
 TWILIO_SID
 TWILIO_TOKEN
 TWILIO_PHONE_NUMBER
-```
+\`\`\`
 
 ---
 

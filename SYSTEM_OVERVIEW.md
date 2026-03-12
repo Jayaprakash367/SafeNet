@@ -17,23 +17,23 @@
 - **Test Suite**: Dashboard → Backend Tests
 
 ### Demo Credentials
-```
+\`\`\`
 Email: demo@safenet.gov
 Password: password123
-```
+\`\`\`
 
 ### Install & Run
-```bash
+\`\`\`bash
 npm install
 npm run dev
-```
+\`\`\`
 
 ---
 
 ## System Architecture
 
 ### Frontend Architecture
-```
+\`\`\`
 React 18 with Next.js 15 App Router
 ├── Pages (App Router)
 │   ├── page.tsx (Main Dashboard - Enterprise)
@@ -50,10 +50,10 @@ React 18 with Next.js 15 App Router
 │   └── utils.ts
 └── Styles (Tailwind CSS v4)
     └── globals.css (Design System)
-```
+\`\`\`
 
 ### Backend Architecture
-```
+\`\`\`
 Node.js/Next.js API Routes
 ├── /api/sos (POST - Emergency alerts)
 ├── /api/weather (GET - Weather data)
@@ -61,10 +61,10 @@ Node.js/Next.js API Routes
 ├── /api/disaster-alerts (GET - Disaster feed)
 ├── /api/emergency-resources (GET - Resource locator)
 └── /api/test-sms (POST - SMS testing)
-```
+\`\`\`
 
 ### Data Storage Architecture
-```
+\`\`\`
 Client-Side:
 ├── localStorage (Auth tokens, user data)
 ├── sessionStorage (Temporary session data)
@@ -74,7 +74,7 @@ Server-Side (Ready for):
 ├── Supabase PostgreSQL
 ├── Neon PostgreSQL
 └── AWS RDS PostgreSQL
-```
+\`\`\`
 
 ---
 
@@ -186,7 +186,7 @@ Server-Side (Ready for):
 ## Testing & Verification
 
 ### Test Suite Results
-```
+\`\`\`
 Total Tests: 24
 Passed: 22
 Failed: 0
@@ -200,20 +200,20 @@ By Category:
 ✓ Offline Queue: 3/3 PASS
 ✓ Security: 3/3 PASS
 ✓ API Endpoints: All OPERATIONAL
-```
+\`\`\`
 
 ### Security Audit
-```
+\`\`\`
 Input Validation: PASS ✓
 Data Protection: PASS ✓
 Error Handling: PASS ✓
 CORS Config: PASS ✓
 API Security: PASS ✓
 Overall: ENTERPRISE GRADE ✓
-```
+\`\`\`
 
 ### Performance Metrics
-```
+\`\`\`
 Initial Load: < 2 seconds
 Dashboard Render: < 1 second
 SOS Alert: < 500ms
@@ -221,14 +221,14 @@ Navigation: < 300ms
 Lighthouse Score: 90+
 Mobile Score: 92
 Desktop Score: 94
-```
+\`\`\`
 
 ---
 
 ## Files & Components Summary
 
 ### Key Files Created/Updated
-```
+\`\`\`
 ✓ app/page.tsx - Professional dashboard
 ✓ app/login/page.tsx - Enterprise login
 ✓ components/enterprise-navigation.tsx - Top navigation
@@ -239,24 +239,24 @@ Desktop Score: 94
 ✓ app/api/sos/route.ts - Emergency API (270 lines)
 ✓ public/sw.js - Service Worker
 ✓ public/manifest.json - PWA manifest
-```
+\`\`\`
 
 ### Documentation Created
-```
+\`\`\`
 ✓ DEPLOYMENT_VERIFICATION.md - Production checklist
 ✓ PROJECT_SUMMARY.md - Complete project overview
 ✓ FEATURE_CHECKLIST.md - 389 features verified
 ✓ SYSTEM_OVERVIEW.md - This file
 ✓ UPGRADE_SUMMARY.md - Design changes
 ✓ docs/FALLBACK_SYSTEM.md - Offline guide
-```
+\`\`\`
 
 ---
 
 ## API Endpoints Reference
 
 ### Emergency SOS
-```
+\`\`\`
 POST /api/sos
 Request: {
   userId: string
@@ -272,10 +272,10 @@ Response: {
   assignedUnits: string[]
   instructions: string[]
 }
-```
+\`\`\`
 
 ### Weather Alerts
-```
+\`\`\`
 GET /api/weather?lat=28.6139&lng=77.209
 Response: {
   temperature: number
@@ -283,10 +283,10 @@ Response: {
   alerts: Alert[]
   disasters: Disaster[]
 }
-```
+\`\`\`
 
 ### Voice Analysis
-```
+\`\`\`
 POST /api/voice-analysis
 Request: { audioData: Blob }
 Response: {
@@ -294,14 +294,14 @@ Response: {
   confidence: number
   urgency: "critical" | "high" | "medium" | "low"
 }
-```
+\`\`\`
 
 ---
 
 ## Environment Variables Required
 
 ### Production Deployment
-```
+\`\`\`
 # Twilio SMS Integration
 TWILIO_SID=your_sid_here
 TWILIO_TOKEN=your_token_here
@@ -314,7 +314,7 @@ JWT_SECRET=your_jwt_secret
 # Optional: APIs
 GOOGLE_MAPS_API_KEY=your_maps_key
 OPENWEATHERMAP_API_KEY=your_weather_key
-```
+\`\`\`
 
 ---
 
