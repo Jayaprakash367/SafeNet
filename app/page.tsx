@@ -65,8 +65,8 @@ export default function SafeNetDashboard() {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-fade-scale">
-          <Card className="card-shadow">
+        <div className="animate-in fade-in zoom-in-95 duration-300">
+          <Card className="shadow-md">
             <CardContent className="p-8 text-center">
               <div className="animate-pulse text-primary text-4xl mb-4">SafeNet</div>
               <p className="text-muted-foreground">Loading emergency response system...</p>
@@ -85,10 +85,10 @@ export default function SafeNetDashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Header Section */}
-        <div className="mb-8 animate-slide-in">
+        <div className="mb-8 animate-in slide-in-from-top duration-500">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gradient-disaster bg-clip-text text-transparent mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
                 Emergency Response Dashboard
               </h1>
               <p className="text-muted-foreground">
@@ -101,7 +101,7 @@ export default function SafeNetDashboard() {
           {/* Status Bar */}
           <div className="flex flex-wrap gap-3 mt-6">
             <Badge
-              className={`transition-smooth ${
+              className={`transition-all duration-300 ease-out ${
                 connectionStatus === 'online'
                   ? 'bg-green-600 text-white'
                   : 'bg-destructive text-destructive-foreground'
@@ -120,7 +120,7 @@ export default function SafeNetDashboard() {
         </div>
 
         {/* SOS Emergency Section */}
-        <Card className="mb-8 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 card-shadow animate-slide-in">
+        <Card className="mb-8 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 shadow-md animate-in slide-in-from-bottom duration-500">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-primary">
               <AlertCircle className="w-6 h-6" />
@@ -158,7 +158,7 @@ export default function SafeNetDashboard() {
                   userLocation={userLocation}
                   connectionStatus={connectionStatus}
                 />
-                <Button variant="outline" size="sm" className="transition-smooth">
+                <Button variant="outline" size="sm" className="transition-all duration-300 ease-out">
                   <Smartphone className="w-4 h-4 mr-2" />
                   View on Mobile
                 </Button>
@@ -171,7 +171,7 @@ export default function SafeNetDashboard() {
         <EnterpriseDashboard />
 
         {/* Footer */}
-        <footer className="mt-12 pt-8 border-t border-border text-center text-muted-foreground text-sm animate-slide-in">
+        <footer className="mt-12 pt-8 border-t border-border text-center text-muted-foreground text-sm animate-in slide-in-from-bottom duration-500">
           <p>SafeNet Emergency Response System • Built with enterprise-grade reliability</p>
           <p className="mt-2">For emergencies, press the SOS button or call local emergency services</p>
         </footer>

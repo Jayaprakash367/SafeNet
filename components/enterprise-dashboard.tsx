@@ -19,13 +19,13 @@ export function EnterpriseDashboard() {
   ]
 
   return (
-    <div className="space-y-6 animate-slide-in">
+    <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
-            <Card key={stat.label} className="card-shadow card-hover">
+            <Card key={stat.label} className="shadow-md transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-0.5">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
                 <Icon className={`h-4 w-4 ${stat.color}`} />
@@ -42,7 +42,7 @@ export function EnterpriseDashboard() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Alerts */}
-        <Card className="lg:col-span-2 card-shadow">
+        <Card className="lg:col-span-2 shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="text-primary" />
@@ -54,7 +54,7 @@ export function EnterpriseDashboard() {
               {recentAlerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-accent/10 transition-smooth"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-accent/10 transition-all duration-300 ease-out"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -84,7 +84,7 @@ export function EnterpriseDashboard() {
         </Card>
 
         {/* Quick Status */}
-        <Card className="card-shadow">
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="text-green-600" />

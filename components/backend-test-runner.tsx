@@ -62,7 +62,7 @@ export function BackendTestRunner() {
   }
 
   return (
-    <Card className="card-shadow">
+    <Card className="shadow-md">
       <CardHeader className="bg-gradient-to-r from-secondary/5 to-primary/5 border-b border-border">
         <CardTitle className="flex items-center gap-2">
           <Play className="w-5 h-5 text-secondary" />
@@ -86,7 +86,7 @@ export function BackendTestRunner() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id as any)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-smooth ${
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out ${
                     selectedCategory === cat.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted hover:bg-muted/80 text-foreground'
@@ -120,7 +120,7 @@ export function BackendTestRunner() {
 
           {/* Test Results */}
           {testResults && (
-            <div className="space-y-4 animate-slide-in">
+            <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
               {/* Summary */}
               <div className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -148,7 +148,7 @@ export function BackendTestRunner() {
                 {testResults.results.map((result: any, index: number) => (
                   <div
                     key={index}
-                    className="p-3 border border-border rounded-lg hover:bg-muted/50 transition-smooth flex items-start gap-3"
+                    className="p-3 border border-border rounded-lg hover:bg-muted/50 transition-all duration-300 ease-out flex items-start gap-3"
                   >
                     <div className="flex-shrink-0 mt-1">{getStatusIcon(result.status)}</div>
                     <div className="flex-1 min-w-0">

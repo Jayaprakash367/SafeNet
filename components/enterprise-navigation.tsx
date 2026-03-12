@@ -29,12 +29,12 @@ export function EnterpriseNavigation() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 transition-smooth hover:opacity-80">
+          <Link href="/" className="flex items-center gap-3 transition-all duration-300 ease-out hover:opacity-80">
             <div className="flex items-center justify-center w-10 h-10 bg-sidebar-primary rounded-lg">
               <Shield className="w-6 h-6 text-sidebar-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-shadow-subtle">SafeNet</h1>
+              <h1 className="text-xl font-bold" style={{textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'}}>SafeNet</h1>
               <p className="text-xs text-sidebar-foreground/70">Emergency Response</p>
             </div>
           </Link>
@@ -48,7 +48,7 @@ export function EnterpriseNavigation() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground transition-smooth"
+                    className="text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground transition-all duration-300 ease-out"
                   >
                     <Icon className="w-4 h-4 mr-2" />
                     {item.label}
@@ -64,7 +64,7 @@ export function EnterpriseNavigation() {
               onClick={handleLogout}
               variant="ghost"
               size="sm"
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-smooth"
+              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-300 ease-out"
             >
               <LogOut className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Logout</span>
@@ -73,7 +73,7 @@ export function EnterpriseNavigation() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 hover:bg-sidebar-primary rounded-lg transition-smooth"
+              className="md:hidden p-2 hover:bg-sidebar-primary rounded-lg transition-all duration-300 ease-out"
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -82,7 +82,7 @@ export function EnterpriseNavigation() {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden pb-4 animate-slide-in">
+          <div className="md:hidden pb-4 animate-in fade-in slide-in-from-top duration-300">
             {navItems.map((item) => {
               const Icon = item.icon
               return (
@@ -90,7 +90,7 @@ export function EnterpriseNavigation() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground transition-smooth rounded-lg"
+                  className="flex items-center gap-2 px-4 py-2 text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground transition-all duration-300 ease-out rounded-lg"
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
