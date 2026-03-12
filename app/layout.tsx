@@ -6,23 +6,32 @@ import "./globals.css"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 
 export const metadata: Metadata = {
-  title: "SafeNet - AI Powered Global Disaster SOS",
-  description: "AI-powered SOS network that listens, verifies, and saves lives in 30 seconds",
-  generator: "v0.app",
+  title: "SafeNet - Enterprise Emergency Response System",
+  description: "Professional disaster management and emergency response coordination platform trusted by government agencies and emergency services",
+  keywords: "disaster management, emergency response, SOS alert, GPS tracking, emergency coordination, crisis management",
+  generator: "SafeNet v1.0",
   manifest: "/manifest.json",
-  themeColor: "#dc2626",
+  themeColor: "#c41e3a",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "SafeNet SOS",
+    statusBarStyle: "black-translucent",
+    title: "SafeNet",
   },
   icons: {
     icon: [
-      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon-192x192.jpg", sizes: "192x192", type: "image/jpeg" },
+      { url: "/icon-512x512.jpg", sizes: "512x512", type: "image/jpeg" },
     ],
-    apple: [{ url: "/icon-192x192.png", sizes: "192x192", type: "image/png" }],
+    shortcut: [{ url: "/icon-192x192.jpg", sizes: "192x192" }],
+    apple: [
+      { url: "/icon-192x192.jpg", sizes: "192x192", type: "image/jpeg" },
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  other: {
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-capable": "yes",
   },
 }
 

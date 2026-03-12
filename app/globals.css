@@ -3,76 +3,76 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Premium Light Mode */
-  --background: oklch(0.98 0.001 270); /* Off-white with subtle tone */
-  --foreground: oklch(0.25 0.01 270); /* Dark slate text */
-  --card: oklch(1 0 0); /* Pure white cards */
-  --card-foreground: oklch(0.25 0.01 270); /* Dark text on cards */
-  --popover: oklch(1 0 0); /* Pure white popover */
-  --popover-foreground: oklch(0.25 0.01 270); /* Dark popover text */
-  --primary: oklch(0.58 0.18 25); /* Vibrant red (#e63946) for emergency */
-  --primary-foreground: oklch(1 0 0); /* White text on red */
-  --secondary: oklch(0.72 0.18 50); /* Golden accent (#f4a261) */
-  --secondary-foreground: oklch(0.25 0.01 270); /* Dark text on golden */
-  --muted: oklch(0.92 0.005 270); /* Light gray muted */
-  --muted-foreground: oklch(0.55 0.01 270); /* Medium gray text */
-  --accent: oklch(0.58 0.18 25); /* Red accent for emergency states */
-  --accent-foreground: oklch(1 0 0); /* White text on accent */
-  --destructive: oklch(0.58 0.18 25); /* Red destructive actions */
-  --destructive-foreground: oklch(1 0 0); /* White text destructive */
-  --border: oklch(0.88 0.005 270); /* Subtle border */
-  --input: oklch(0.96 0.005 270); /* Light input background */
-  --ring: oklch(0.58 0.18 25 / 0.2); /* Red focus ring subtle */
-  --chart-1: oklch(0.58 0.18 25); /* Red charts */
-  --chart-2: oklch(0.72 0.18 50); /* Golden charts */
-  --chart-3: oklch(0.4 0.08 270); /* Dark slate charts */
-  --chart-4: oklch(0.65 0.15 200); /* Blue charts */
-  --chart-5: oklch(0.5 0.15 140); /* Green charts */
-  --radius: 0.75rem; /* Increased border radius for modern look */
-  --sidebar: oklch(1 0 0); /* White sidebar */
-  --sidebar-foreground: oklch(0.25 0.01 270); /* Dark sidebar text */
-  --sidebar-primary: oklch(0.58 0.18 25); /* Red sidebar primary */
-  --sidebar-primary-foreground: oklch(1 0 0); /* White text on red */
-  --sidebar-accent: oklch(0.72 0.18 50); /* Golden sidebar accent */
-  --sidebar-accent-foreground: oklch(0.25 0.01 270); /* Dark text on golden */
-  --sidebar-border: oklch(0.88 0.005 270); /* Subtle sidebar border */
-  --sidebar-ring: oklch(0.58 0.18 25 / 0.2); /* Red sidebar focus ring */
+  /* Enterprise Disaster Management Light Mode */
+  --background: #f8f9fa; /* Clean off-white background */
+  --foreground: #1a1f35; /* Deep navy text */
+  --card: #ffffff; /* Pure white cards with elevation */
+  --card-foreground: #1a1f35; /* Deep navy card text */
+  --popover: #ffffff; /* White popover */
+  --popover-foreground: #1a1f35; /* Navy popover text */
+  --primary: #c41e3a; /* Official disaster red (matches emergency services) */
+  --primary-foreground: #ffffff; /* White text on red */
+  --secondary: #1a5490; /* Professional deep blue (government/official) */
+  --secondary-foreground: #ffffff; /* White text on blue */
+  --muted: #e9ecef; /* Light gray backgrounds */
+  --muted-foreground: #495057; /* Medium gray text */
+  --accent: #ff6b35; /* High-visibility orange (warning/alert) */
+  --accent-foreground: #ffffff; /* White text on orange */
+  --destructive: #c41e3a; /* Red for critical actions */
+  --destructive-foreground: #ffffff; /* White text on destructive */
+  --border: #dee2e6; /* Subtle gray borders */
+  --input: #f1f3f5; /* Light input backgrounds */
+  --ring: #c41e3a; /* Red focus ring */
+  --chart-1: #c41e3a; /* Red for critical data */
+  --chart-2: #1a5490; /* Blue for general data */
+  --chart-3: #ff6b35; /* Orange for warnings */
+  --chart-4: #2d942d; /* Green for safe state */
+  --chart-5: #6c757d; /* Gray for neutral */
+  --radius: 0.625rem; /* Professional corner rounding */
+  --sidebar: #1a5490; /* Deep blue sidebar */
+  --sidebar-foreground: #ffffff; /* White sidebar text */
+  --sidebar-primary: #ff6b35; /* Orange sidebar accents */
+  --sidebar-primary-foreground: #ffffff; /* White text on orange */
+  --sidebar-accent: #c41e3a; /* Red sidebar accents */
+  --sidebar-accent-foreground: #ffffff; /* White text on red */
+  --sidebar-border: #0d2a4d; /* Darker blue borders */
+  --sidebar-ring: #ff6b35; /* Orange focus ring */
 }
 
 .dark {
-  /* Premium Dark Mode */
-  --background: oklch(0.12 0.002 270); /* Deep dark background */
-  --foreground: oklch(0.95 0.01 270); /* Nearly white text */
-  --card: oklch(0.16 0.002 270); /* Dark card with subtle elevation */
-  --card-foreground: oklch(0.95 0.01 270); /* Light card text */
-  --popover: oklch(0.12 0.002 270); /* Dark popover */
-  --popover-foreground: oklch(0.95 0.01 270); /* Light popover text */
-  --primary: oklch(0.65 0.2 25); /* Bright red for emergency visibility */
-  --primary-foreground: oklch(0.12 0.002 270); /* Dark text on red */
-  --secondary: oklch(0.78 0.2 50); /* Brighter golden for dark mode */
-  --secondary-foreground: oklch(0.12 0.002 270); /* Dark text on golden */
-  --muted: oklch(0.22 0.002 270); /* Dark muted background */
-  --muted-foreground: oklch(0.65 0.01 270); /* Medium light gray text */
-  --accent: oklch(0.65 0.2 25); /* Bright red accent */
-  --accent-foreground: oklch(1 0 0); /* White text on accent */
-  --destructive: oklch(0.65 0.2 25); /* Bright red destructive */
-  --destructive-foreground: oklch(1 0 0); /* White text destructive */
-  --border: oklch(0.22 0.002 270); /* Dark subtle border */
-  --input: oklch(0.2 0.002 270); /* Dark input background */
-  --ring: oklch(0.65 0.2 25 / 0.3); /* Red focus ring for dark */
-  --chart-1: oklch(0.65 0.2 25); /* Bright red charts */
-  --chart-2: oklch(0.78 0.2 50); /* Bright golden charts */
-  --chart-3: oklch(0.7 0.01 270); /* Light gray charts */
-  --chart-4: oklch(0.7 0.15 200); /* Bright blue charts */
-  --chart-5: oklch(0.6 0.15 140); /* Bright green charts */
-  --sidebar: oklch(0.16 0.002 270); /* Dark sidebar */
-  --sidebar-foreground: oklch(0.95 0.01 270); /* Light sidebar text */
-  --sidebar-primary: oklch(0.65 0.2 25); /* Bright red sidebar */
-  --sidebar-primary-foreground: oklch(1 0 0); /* White text on red */
-  --sidebar-accent: oklch(0.78 0.2 50); /* Bright golden sidebar */
-  --sidebar-accent-foreground: oklch(0.12 0.002 270); /* Dark text on golden */
-  --sidebar-border: oklch(0.22 0.002 270); /* Dark sidebar border */
-  --sidebar-ring: oklch(0.65 0.2 25 / 0.3); /* Red sidebar focus ring */
+  /* Enterprise Disaster Management Dark Mode */
+  --background: #0f1419; /* Very dark background */
+  --foreground: #e9ecef; /* Light text */
+  --card: #1a1f35; /* Dark blue-gray cards */
+  --card-foreground: #e9ecef; /* Light card text */
+  --popover: #0f1419; /* Dark popover */
+  --popover-foreground: #e9ecef; /* Light popover text */
+  --primary: #ff4656; /* Bright red for visibility in dark mode */
+  --primary-foreground: #0f1419; /* Dark text on red */
+  --secondary: #4a90e2; /* Bright blue for dark mode */
+  --secondary-foreground: #ffffff; /* White text on blue */
+  --muted: #2d3748; /* Dark muted background */
+  --muted-foreground: #a0aec0; /* Light gray text */
+  --accent: #ff6b35; /* Bright orange accent */
+  --accent-foreground: #0f1419; /* Dark text on orange */
+  --destructive: #ff4656; /* Bright red destructive */
+  --destructive-foreground: #0f1419; /* Dark text on destructive */
+  --border: #2d3748; /* Dark borders */
+  --input: #1a1f35; /* Dark input background */
+  --ring: #ff4656; /* Red focus ring */
+  --chart-1: #ff4656; /* Bright red charts */
+  --chart-2: #4a90e2; /* Bright blue charts */
+  --chart-3: #ff6b35; /* Bright orange charts */
+  --chart-4: #4cab5c; /* Green charts */
+  --chart-5: #a0aec0; /* Light gray charts */
+  --sidebar: #0d1117; /* Very dark sidebar */
+  --sidebar-foreground: #e9ecef; /* Light sidebar text */
+  --sidebar-primary: #ff4656; /* Bright red sidebar */
+  --sidebar-primary-foreground: #0f1419; /* Dark text on red */
+  --sidebar-accent: #ff6b35; /* Bright orange sidebar */
+  --sidebar-accent-foreground: #0f1419; /* Dark text on orange */
+  --sidebar-border: #0d1117; /* Very dark borders */
+  --sidebar-ring: #ff4656; /* Red focus ring */
 }
 
 @theme inline {
@@ -125,61 +125,145 @@
 }
 
 @layer components {
-  /* Glassmorphism effect */
+  /* Enterprise glass-morphism effect */
   .glass-effect {
-    @apply bg-white/10 backdrop-blur-md border border-white/20;
+    @apply backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border border-gray-200/50 dark:border-slate-700/50;
   }
 
-  /* Premium card hover effects */
+  /* Professional card hover with elevation */
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-xl hover:shadow-primary/10;
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-0.5;
   }
 
-  /* SOS button pulse animation */
-  @keyframes pulse-emergency {
+  /* Enterprise SOS pulse animation */
+  @keyframes pulse-sos {
     0%, 100% {
-      opacity: 1;
-      box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.7);
+      box-shadow: 0 0 0 0 rgba(196, 30, 58, 0.7);
     }
     50% {
-      opacity: 0.8;
+      box-shadow: 0 0 0 10px rgba(196, 30, 58, 0);
     }
   }
 
   .pulse-sos {
-    animation: pulse-emergency 2s infinite;
+    animation: pulse-sos 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* Smooth gradient background */
-  .gradient-emergency {
-    background: linear-gradient(135deg, #e63946 0%, #f4a261 100%);
+  /* Smooth slide-in animation */
+  @keyframes slide-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  /* Modern card shadow */
+  .animate-slide-in {
+    animation: slide-in-up 0.5s ease-out;
+  }
+
+  /* Fade scale animation */
+  @keyframes fade-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fade-scale {
+    animation: fade-scale 0.3s ease-out;
+  }
+
+  /* Professional gradient */
+  .gradient-disaster {
+    background: linear-gradient(135deg, #c41e3a 0%, #1a5490 50%, #ff6b35 100%);
+  }
+
+  /* Enterprise card shadow with depth */
   .card-shadow {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
   .dark .card-shadow {
-    box-shadow: 0 10px 30px rgba(230, 57, 70, 0.15);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   }
 
-  /* Smooth transitions */
+  /* Smooth transition utility */
   .transition-smooth {
     @apply transition-all duration-300 ease-out;
   }
 
-  /* Premium badge styling */
-  .badge-premium {
-    @apply px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20;
+  .transition-smooth-fast {
+    @apply transition-all duration-200 ease-out;
   }
 
-  /* Emergency state indicator */
+  /* Professional badge */
+  .badge-premium {
+    @apply px-3 py-1.5 rounded-md text-xs font-semibold bg-primary/10 text-primary border border-primary/20 transition-colors;
+  }
+
+  .badge-premium:hover {
+    @apply bg-primary/15 border-primary/30;
+  }
+
+  /* Text with professional shadow */
+  .text-shadow-subtle {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .text-shadow-medium {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .text-shadow-medium {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Emergency status indicator */
   .status-emergency {
-    @apply animate-pulse text-primary;
+    @apply animate-pulse text-primary font-semibold;
+  }
+
+  .status-warning {
+    @apply text-accent font-semibold;
   }
 
   .status-safe {
-    @apply text-green-600 dark:text-green-400;
+    @apply text-green-600 dark:text-green-400 font-semibold;
+  }
+
+  /* Professional button group */
+  .button-group {
+    @apply flex gap-2 transition-smooth;
+  }
+
+  /* Navigation link active state */
+  .nav-active {
+    @apply border-b-2 border-primary font-semibold text-primary;
+  }
+
+  /* Enterprise loading skeleton */
+  @keyframes skeleton-loading {
+    0% {
+      background-color: hsl(200, 20%, 80%);
+    }
+    100% {
+      background-color: hsl(200, 20%, 95%);
+    }
+  }
+
+  .animate-skeleton {
+    animation: skeleton-loading 1.5s infinite ease-in-out;
   }
 }

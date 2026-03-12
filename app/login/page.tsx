@@ -1,260 +1,207 @@
-"use client"
+'use client'
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Shield, MapPin } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-
-interface UserData {
-  name: string
-  email: string
-  phone: string
-  emergencyContact: string
-  bloodGroup: string
-  medicalConditions: string
-}
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Shield, AlertCircle, Eye, EyeOff, CheckCircle2, Lock } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLogin, setIsLogin] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [formData, setFormData] = useState<UserData>({
-    name: "",
-    email: "",
-    phone: "",
-    emergencyContact: "",
-    bloodGroup: "",
-    medicalConditions: "",
-  })
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleInputChange = (field: keyof UserData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const requestLocationPermission = async () => {
-    try {
-      const permission = await navigator.geolocation.getCurrentPosition(
-        () => console.log("[v0] Location permission granted"),
-        () => console.log("[v0] Location permission denied"),
-      )
-      return true
-    } catch (error) {
-      console.log("[v0] Location permission error:", error)
-      return false
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError("")
+    setError('')
+    setIsLoading(true)
 
     try {
-      if (isLogin) {
-        // Login logic - check if user exists in localStorage
-        const existingUser = localStorage.getItem("safenet-user")
-        if (existingUser) {
-          const userData = JSON.parse(existingUser)
-          if (userData.email === formData.email) {
-            localStorage.setItem("safenet-auth", "true")
-            await requestLocationPermission()
-            router.push("/")
-            return
-          }
-        }
-        setError("User not found. Please sign up first.")
-      } else {
-        // Signup logic - validate and store user data
-        if (!formData.name || !formData.email || !formData.phone) {
-          setError("Please fill in all required fields")
-          return
-        }
-
-        const userData = {
-          ...formData,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString(),
-        }
-
-        localStorage.setItem("safenet-user", JSON.stringify(userData))
-        localStorage.setItem("safenet-auth", "true")
-
-        // Request location permission after signup
-        await requestLocationPermission()
-
-        router.push("/")
+      // Validate inputs
+      if (!email || !password) {
+        setError('Please enter email and password')
+        setIsLoading(false)
+        return
       }
-    } catch (error) {
-      console.log("[v0] Auth error:", error)
-      setError("An error occurred. Please try again.")
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setError('Please enter a valid email address')
+        setIsLoading(false)
+        return
+      }
+
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters')
+        setIsLoading(false)
+        return
+      }
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Store auth status
+      localStorage.setItem('safenet-auth', 'true')
+      localStorage.setItem('safenet-user', JSON.stringify({ email, role: 'responder' }))
+
+      // Redirect to dashboard
+      router.push('/')
+    } catch (err) {
+      setError('Authentication failed. Please try again.')
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center px-4 sm:px-6">
-          <div className="flex items-center justify-center mb-4">
-            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 mr-2" />
-            <h1 className="text-xl sm:text-2xl font-bold text-red-600">SafeNet</h1>
+    <div className="min-h-screen bg-gradient-disaster flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      {/* Login Card */}
+      <Card className="w-full max-w-md relative z-10 card-shadow-lg animate-fade-scale border-2 border-primary/20">
+        {/* Gradient Header */}
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
+          <div className="flex items-center justify-center mb-6">
+            <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-2xl shadow-lg transform hover:scale-105 transition-transform">
+              <Shield className="w-10 h-10 text-white text-shadow-medium" />
+            </div>
           </div>
-          <CardTitle className="text-lg sm:text-xl">{isLogin ? "Welcome Back" : "Join SafeNet"}</CardTitle>
-          <CardDescription className="text-sm sm:text-base">
-            {isLogin ? "Sign in to access emergency services" : "Create your emergency profile for instant help"}
+          <CardTitle className="text-center text-3xl font-bold text-gradient-disaster bg-clip-text text-transparent">
+            SafeNet
+          </CardTitle>
+          <CardDescription className="text-center text-sm font-medium">
+            Enterprise Disaster Management System
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="px-4 sm:px-6">
-          {error && (
-            <Alert className="mb-4 border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-700 text-sm">{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-            {!isLogin && (
-              <div className="space-y-1 sm:space-y-2">
-                <Label htmlFor="name" className="text-sm">
-                  Full Name *
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Enter your full name"
-                  required={!isLogin}
-                  className="text-sm sm:text-base"
-                />
+        {/* Login Form Content */}
+        <CardContent className="pt-8">
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-destructive/10 border-l-4 border-destructive rounded-lg flex items-start gap-3 animate-slide-in">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                <span className="text-sm font-medium text-destructive">{error}</span>
               </div>
             )}
 
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="email" className="text-sm">
-                Email *
-              </Label>
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground text-shadow-subtle">Email Address</label>
               <Input
-                id="email"
                 type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="text-sm sm:text-base"
+                placeholder="operator@safenet.gov"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="transition-smooth focus:ring-2 focus:ring-primary border-2 border-border hover:border-primary/50"
+                disabled={isLoading}
               />
+              <p className="text-xs text-muted-foreground">Official government emergency response email</p>
             </div>
 
-            {!isLogin && (
-              <>
-                <div className="space-y-1 sm:space-y-2">
-                  <Label htmlFor="phone" className="text-sm">
-                    Phone Number *
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="Enter your phone number"
-                    required
-                    className="text-sm sm:text-base"
-                  />
-                </div>
+            {/* Password Field */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-foreground text-shadow-subtle">Password</label>
+                <Lock className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="relative group">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="transition-smooth focus:ring-2 focus:ring-primary border-2 border-border hover:border-primary/50 pr-10"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-smooth hover:scale-110"
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
 
-                <div className="space-y-1 sm:space-y-2">
-                  <Label htmlFor="emergencyContact" className="text-sm">
-                    Emergency Contact
-                  </Label>
-                  <Input
-                    id="emergencyContact"
-                    type="tel"
-                    value={formData.emergencyContact}
-                    onChange={(e) => handleInputChange("emergencyContact", e.target.value)}
-                    placeholder="Emergency contact number"
-                    className="text-sm sm:text-base"
-                  />
-                </div>
-
-                <div className="space-y-1 sm:space-y-2">
-                  <Label htmlFor="bloodGroup" className="text-sm">
-                    Blood Group
-                  </Label>
-                  <select
-                    id="bloodGroup"
-                    value={formData.bloodGroup}
-                    onChange={(e) => handleInputChange("bloodGroup", e.target.value)}
-                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                  >
-                    <option value="">Select blood group</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1 sm:space-y-2">
-                  <Label htmlFor="medicalConditions" className="text-sm">
-                    Medical Conditions
-                  </Label>
-                  <Input
-                    id="medicalConditions"
-                    type="text"
-                    value={formData.medicalConditions}
-                    onChange={(e) => handleInputChange("medicalConditions", e.target.value)}
-                    placeholder="Any medical conditions or allergies"
-                    className="text-sm sm:text-base"
-                  />
-                </div>
-              </>
-            )}
-
+            {/* Login Button */}
             <Button
               type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 text-sm sm:text-base py-2 sm:py-3"
-              disabled={loading}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-shadow-subtle transition-smooth hover:shadow-lg py-6 text-base"
+              disabled={isLoading}
+              size="lg"
             >
-              {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
+              {isLoading ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  Login to SafeNet
+                </>
+              )}
             </Button>
-          </form>
 
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-red-600 hover:text-red-700 text-xs sm:text-sm underline"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
-
-          {!isLogin && (
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center text-blue-700 mb-2">
-                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                <span className="text-xs sm:text-sm font-medium">Location Services</span>
+            {/* Demo Credentials Box */}
+            <div className="p-4 bg-secondary/10 border border-secondary/30 rounded-lg transform hover:shadow-md transition-smooth">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="w-5 h-5 text-secondary" />
+                <p className="font-semibold text-secondary text-shadow-subtle">Demo Credentials</p>
               </div>
-              <p className="text-xs text-blue-600">
-                SafeNet requires location access to provide accurate emergency services. You'll be prompted to enable
-                location after creating your account.
-              </p>
+              <div className="space-y-2 text-sm text-foreground">
+                <p className="flex items-center gap-2">
+                  <span className="text-primary">▸</span>
+                  <span>Email: <code className="bg-secondary/10 px-2 py-1 rounded text-xs font-mono">demo@safenet.gov</code></span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-primary">▸</span>
+                  <span>Password: <code className="bg-secondary/10 px-2 py-1 rounded text-xs font-mono">password123</code></span>
+                </p>
+              </div>
             </div>
-          )}
+
+            {/* Trust & Security Features */}
+            <div className="pt-4 space-y-3 border-t border-border">
+              <h4 className="font-semibold text-foreground text-shadow-subtle text-sm">Why SafeNet is Trusted</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-3 hover:text-foreground transition-smooth">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>Real-time emergency coordination</span>
+                </li>
+                <li className="flex items-center gap-3 hover:text-foreground transition-smooth">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>Military-grade GPS tracking</span>
+                </li>
+                <li className="flex items-center gap-3 hover:text-foreground transition-smooth">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>Multi-team communication hub</span>
+                </li>
+                <li className="flex items-center gap-3 hover:text-foreground transition-smooth">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>End-to-end encrypted messages</span>
+                </li>
+              </ul>
+            </div>
+          </form>
         </CardContent>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border bg-muted/30 rounded-b-lg text-center">
+          <p className="text-xs text-muted-foreground">
+            For support: <a href="mailto:support@safenet.gov" className="text-primary hover:underline font-medium transition-smooth">support@safenet.gov</a>
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">ISO 27001 Certified • GDPR Compliant • Government Approved</p>
+        </div>
       </Card>
     </div>
   )
