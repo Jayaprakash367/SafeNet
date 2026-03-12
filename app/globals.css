@@ -1,82 +1,82 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0); /* White background */
-  --foreground: oklch(0.3 0 0); /* Gray-700 text */
-  --card: oklch(0.99 0.02 85); /* Light beige card background */
-  --card-foreground: oklch(0.3 0 0); /* Gray-700 text on cards */
-  --popover: oklch(1 0 0); /* White popover background */
-  --popover-foreground: oklch(0.3 0 0); /* Gray-700 text on popovers */
-  --primary: oklch(0.65 0.15 45); /* Amber-600 for primary actions */
-  --primary-foreground: oklch(1 0 0); /* White text on primary */
-  --secondary: oklch(0.55 0.22 25); /* Red for critical alerts */
-  --secondary-foreground: oklch(1 0 0); /* White text on secondary */
-  --muted: oklch(0.98 0.01 85); /* Very light beige for muted backgrounds */
-  --muted-foreground: oklch(0.3 0 0); /* Gray-700 text on muted */
-  --accent: oklch(0.55 0.22 25); /* Red accent for alerts */
+  /* Premium Light Mode */
+  --background: oklch(0.98 0.001 270); /* Off-white with subtle tone */
+  --foreground: oklch(0.25 0.01 270); /* Dark slate text */
+  --card: oklch(1 0 0); /* Pure white cards */
+  --card-foreground: oklch(0.25 0.01 270); /* Dark text on cards */
+  --popover: oklch(1 0 0); /* Pure white popover */
+  --popover-foreground: oklch(0.25 0.01 270); /* Dark popover text */
+  --primary: oklch(0.58 0.18 25); /* Vibrant red (#e63946) for emergency */
+  --primary-foreground: oklch(1 0 0); /* White text on red */
+  --secondary: oklch(0.72 0.18 50); /* Golden accent (#f4a261) */
+  --secondary-foreground: oklch(0.25 0.01 270); /* Dark text on golden */
+  --muted: oklch(0.92 0.005 270); /* Light gray muted */
+  --muted-foreground: oklch(0.55 0.01 270); /* Medium gray text */
+  --accent: oklch(0.58 0.18 25); /* Red accent for emergency states */
   --accent-foreground: oklch(1 0 0); /* White text on accent */
-  --destructive: oklch(0.55 0.22 25); /* Red for destructive actions */
-  --destructive-foreground: oklch(1 0 0); /* White text on destructive */
-  --border: oklch(0.3 0 0); /* Gray-700 borders */
-  --input: oklch(0.99 0.02 85); /* Light beige input backgrounds */
-  --ring: oklch(0.65 0.15 45 / 0.5); /* Amber focus ring */
-  --chart-1: oklch(0.65 0.15 45); /* Amber chart color */
-  --chart-2: oklch(0.55 0.22 25); /* Red chart color */
-  --chart-3: oklch(0.3 0 0); /* Gray chart color */
-  --chart-4: oklch(0.99 0.02 85); /* Light beige chart color */
-  --chart-5: oklch(1 0 0); /* White chart color */
-  --radius: 0.5rem; /* Moderate corner rounding */
-  --sidebar: oklch(1 0 0); /* White sidebar background */
-  --sidebar-foreground: oklch(0.3 0 0); /* Gray-700 sidebar text */
-  --sidebar-primary: oklch(0.65 0.15 45); /* Amber sidebar primary */
-  --sidebar-primary-foreground: oklch(1 0 0); /* White text on sidebar primary */
-  --sidebar-accent: oklch(0.55 0.22 25); /* Red sidebar accent */
-  --sidebar-accent-foreground: oklch(1 0 0); /* White text on sidebar accent */
-  --sidebar-border: oklch(0.3 0 0); /* Gray-700 sidebar borders */
-  --sidebar-ring: oklch(0.65 0.15 45 / 0.5); /* Amber sidebar focus ring */
+  --destructive: oklch(0.58 0.18 25); /* Red destructive actions */
+  --destructive-foreground: oklch(1 0 0); /* White text destructive */
+  --border: oklch(0.88 0.005 270); /* Subtle border */
+  --input: oklch(0.96 0.005 270); /* Light input background */
+  --ring: oklch(0.58 0.18 25 / 0.2); /* Red focus ring subtle */
+  --chart-1: oklch(0.58 0.18 25); /* Red charts */
+  --chart-2: oklch(0.72 0.18 50); /* Golden charts */
+  --chart-3: oklch(0.4 0.08 270); /* Dark slate charts */
+  --chart-4: oklch(0.65 0.15 200); /* Blue charts */
+  --chart-5: oklch(0.5 0.15 140); /* Green charts */
+  --radius: 0.75rem; /* Increased border radius for modern look */
+  --sidebar: oklch(1 0 0); /* White sidebar */
+  --sidebar-foreground: oklch(0.25 0.01 270); /* Dark sidebar text */
+  --sidebar-primary: oklch(0.58 0.18 25); /* Red sidebar primary */
+  --sidebar-primary-foreground: oklch(1 0 0); /* White text on red */
+  --sidebar-accent: oklch(0.72 0.18 50); /* Golden sidebar accent */
+  --sidebar-accent-foreground: oklch(0.25 0.01 270); /* Dark text on golden */
+  --sidebar-border: oklch(0.88 0.005 270); /* Subtle sidebar border */
+  --sidebar-ring: oklch(0.58 0.18 25 / 0.2); /* Red sidebar focus ring */
 }
 
 .dark {
-  --background: oklch(0.15 0 0); /* Dark background */
-  --foreground: oklch(0.98 0 0); /* Light text */
-  --card: oklch(0.18 0 0); /* Dark card background */
-  --card-foreground: oklch(0.98 0 0); /* Light text on cards */
-  --popover: oklch(0.15 0 0); /* Dark popover background */
-  --popover-foreground: oklch(0.98 0 0); /* Light text on popovers */
-  --primary: oklch(0.75 0.15 45); /* Brighter amber for dark mode */
-  --primary-foreground: oklch(0.15 0 0); /* Dark text on primary */
-  --secondary: oklch(0.65 0.22 25); /* Brighter red for dark mode */
-  --secondary-foreground: oklch(1 0 0); /* White text on secondary */
-  --muted: oklch(0.22 0 0); /* Dark muted background */
-  --muted-foreground: oklch(0.7 0 0); /* Light gray text on muted */
-  --accent: oklch(0.65 0.22 25); /* Brighter red accent */
+  /* Premium Dark Mode */
+  --background: oklch(0.12 0.002 270); /* Deep dark background */
+  --foreground: oklch(0.95 0.01 270); /* Nearly white text */
+  --card: oklch(0.16 0.002 270); /* Dark card with subtle elevation */
+  --card-foreground: oklch(0.95 0.01 270); /* Light card text */
+  --popover: oklch(0.12 0.002 270); /* Dark popover */
+  --popover-foreground: oklch(0.95 0.01 270); /* Light popover text */
+  --primary: oklch(0.65 0.2 25); /* Bright red for emergency visibility */
+  --primary-foreground: oklch(0.12 0.002 270); /* Dark text on red */
+  --secondary: oklch(0.78 0.2 50); /* Brighter golden for dark mode */
+  --secondary-foreground: oklch(0.12 0.002 270); /* Dark text on golden */
+  --muted: oklch(0.22 0.002 270); /* Dark muted background */
+  --muted-foreground: oklch(0.65 0.01 270); /* Medium light gray text */
+  --accent: oklch(0.65 0.2 25); /* Bright red accent */
   --accent-foreground: oklch(1 0 0); /* White text on accent */
-  --destructive: oklch(0.65 0.22 25); /* Brighter red for destructive */
-  --destructive-foreground: oklch(1 0 0); /* White text on destructive */
-  --border: oklch(0.22 0 0); /* Dark borders */
-  --input: oklch(0.22 0 0); /* Dark input backgrounds */
-  --ring: oklch(0.75 0.15 45 / 0.5); /* Brighter amber focus ring */
-  --chart-1: oklch(0.75 0.15 45); /* Brighter amber chart */
-  --chart-2: oklch(0.65 0.22 25); /* Brighter red chart */
-  --chart-3: oklch(0.7 0 0); /* Light gray chart */
-  --chart-4: oklch(0.22 0 0); /* Dark chart color */
-  --chart-5: oklch(0.98 0 0); /* Light chart color */
-  --sidebar: oklch(0.18 0 0); /* Dark sidebar background */
-  --sidebar-foreground: oklch(0.98 0 0); /* Light sidebar text */
-  --sidebar-primary: oklch(0.75 0.15 45); /* Brighter amber sidebar primary */
-  --sidebar-primary-foreground: oklch(0.15 0 0); /* Dark text on sidebar primary */
-  --sidebar-accent: oklch(0.65 0.22 25); /* Brighter red sidebar accent */
-  --sidebar-accent-foreground: oklch(1 0 0); /* White text on sidebar accent */
-  --sidebar-border: oklch(0.22 0 0); /* Dark sidebar borders */
-  --sidebar-ring: oklch(0.75 0.15 45 / 0.5); /* Brighter amber sidebar focus ring */
+  --destructive: oklch(0.65 0.2 25); /* Bright red destructive */
+  --destructive-foreground: oklch(1 0 0); /* White text destructive */
+  --border: oklch(0.22 0.002 270); /* Dark subtle border */
+  --input: oklch(0.2 0.002 270); /* Dark input background */
+  --ring: oklch(0.65 0.2 25 / 0.3); /* Red focus ring for dark */
+  --chart-1: oklch(0.65 0.2 25); /* Bright red charts */
+  --chart-2: oklch(0.78 0.2 50); /* Bright golden charts */
+  --chart-3: oklch(0.7 0.01 270); /* Light gray charts */
+  --chart-4: oklch(0.7 0.15 200); /* Bright blue charts */
+  --chart-5: oklch(0.6 0.15 140); /* Bright green charts */
+  --sidebar: oklch(0.16 0.002 270); /* Dark sidebar */
+  --sidebar-foreground: oklch(0.95 0.01 270); /* Light sidebar text */
+  --sidebar-primary: oklch(0.65 0.2 25); /* Bright red sidebar */
+  --sidebar-primary-foreground: oklch(1 0 0); /* White text on red */
+  --sidebar-accent: oklch(0.78 0.2 50); /* Bright golden sidebar */
+  --sidebar-accent-foreground: oklch(0.12 0.002 270); /* Dark text on golden */
+  --sidebar-border: oklch(0.22 0.002 270); /* Dark sidebar border */
+  --sidebar-ring: oklch(0.65 0.2 25 / 0.3); /* Red sidebar focus ring */
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,5 +121,65 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Glassmorphism effect */
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  /* Premium card hover effects */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:shadow-primary/10;
+  }
+
+  /* SOS button pulse animation */
+  @keyframes pulse-emergency {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.7);
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .pulse-sos {
+    animation: pulse-emergency 2s infinite;
+  }
+
+  /* Smooth gradient background */
+  .gradient-emergency {
+    background: linear-gradient(135deg, #e63946 0%, #f4a261 100%);
+  }
+
+  /* Modern card shadow */
+  .card-shadow {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .card-shadow {
+    box-shadow: 0 10px 30px rgba(230, 57, 70, 0.15);
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  /* Premium badge styling */
+  .badge-premium {
+    @apply px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20;
+  }
+
+  /* Emergency state indicator */
+  .status-emergency {
+    @apply animate-pulse text-primary;
+  }
+
+  .status-safe {
+    @apply text-green-600 dark:text-green-400;
   }
 }
