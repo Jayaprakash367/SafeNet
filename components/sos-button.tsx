@@ -75,8 +75,49 @@ export function SOSButton({ isActive, onActivate, onDeactivate, userLocation, co
       },
     }
 
+    const sendNativeSMS = () => {
+      const sosId = `SOS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const locationText = userLocation
+        ? `Location: ${userLocation.lat}, ${userLocation.lng}\nGoogle Maps: https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`
+        : "Location: Not available"
+
+      const smsMessage = `🚨 SAFENET SOS ALERT 🚨
+ID: ${sosId}
+Name: ${profile.name || "Unknown User"}
+Age: ${profile.age || "Unknown"}
+Blood Group: ${profile.bloodGroup || "Unknown"}
+${locationText}
+Emergency: General Emergency
+Time: ${new Date().toLocaleString()}
+Urgency: HIGH
+
+RESCUE NEEDED - User requires immediate assistance!`
+
+      const phoneNumber = "+918825516088" // Your Indian number
+      const smsUrl = `sms:${phoneNumber}?body=${encodeURIComponent(smsMessage)}`
+
+      try {
+        // Create a temporary link element and click it
+        const link = document.createElement("a")
+        link.href = smsUrl
+        link.target = "_blank"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        console.log("[v0] Native SMS app opened with emergency message")
+      } catch (error) {
+        console.error("[v0] Failed to open native SMS app:", error)
+        try {
+          window.open(smsUrl, "_blank")
+        } catch (fallbackError) {
+          console.error("[v0] Fallback method also failed:", fallbackError)
+          alert(`Please manually send SMS to ${phoneNumber} with message: ${smsMessage}`)
+        }
+      }
+    }
+
     try {
-      // Send SOS alert via API
+      // Send SOS alert via API (Twilio)
       const response = await fetch("/api/sos", {
         method: "POST",
         headers: {
@@ -85,18 +126,21 @@ export function SOSButton({ isActive, onActivate, onDeactivate, userLocation, co
         body: JSON.stringify({
           ...alertData,
           emergencyType: "General Emergency",
-          adminNotificationNumber: "8825516088", // Your number for notifications
+          adminNotificationNumber: "+918825516088", // Your Indian number for notifications (E.164 format)
         }),
       })
 
       if (response.ok) {
-        console.log("SOS alert sent successfully")
+        console.log("SOS alert sent successfully via Twilio")
+        sendNativeSMS()
       } else {
-        console.error("Failed to send SOS alert")
+        console.error("Failed to send SOS alert via Twilio")
+        sendNativeSMS()
       }
     } catch (error) {
       console.error("Error sending SOS alert:", error)
-      // Fallback: try to send SMS directly if API fails
+      sendNativeSMS()
+
       if (connectionStatus === "offline") {
         console.log("Offline mode: SOS will be sent when connection is restored")
       }

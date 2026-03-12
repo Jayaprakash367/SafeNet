@@ -10,7 +10,10 @@ import { EmergencyProfile } from "@/components/emergency-profile"
 import { LocationTracker } from "@/components/location-tracker"
 import { DisasterAlerts } from "@/components/disaster-alerts"
 import { QuickActions } from "@/components/quick-actions"
+import { TestSMSButton } from "@/components/test-sms-button"
+import WeatherAlerts from "@/components/weather-alerts"
 import UserProfileHeader from "@/components/user-profile-header"
+import PWAInstall from "@/components/pwa-install"
 import { Shield, MapPin, Phone, AlertTriangle, Users, Zap } from "lucide-react"
 
 export default function SafeNetApp() {
@@ -45,17 +48,44 @@ export default function SafeNetApp() {
     window.addEventListener("offline", updateConnectionStatus)
 
     if (navigator.geolocation) {
+      const locationOptions = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000, // 5 minutes
+      }
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log("[v0] Location access granted")
           setUserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           })
         },
         (error) => {
-          console.error("Location access denied:", error)
+          // Handle different types of geolocation errors gracefully
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              console.log("[v0] Location access denied by user - app will work without location")
+              break
+            case error.POSITION_UNAVAILABLE:
+              console.log("[v0] Location information unavailable - app will work without location")
+              break
+            case error.TIMEOUT:
+              console.log("[v0] Location request timed out - app will work without location")
+              break
+            default:
+              console.log("[v0] Unknown location error - app will work without location")
+              break
+          }
+          // Don't throw or log error - just continue without location
+          setUserLocation(null)
         },
+        locationOptions,
       )
+    } else {
+      console.log("[v0] Geolocation not supported by browser - app will work without location")
+      setUserLocation(null)
     }
 
     return () => {
@@ -142,9 +172,21 @@ export default function SafeNetApp() {
               />
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-lg font-bold">SMS System Test</CardTitle>
+              <CardDescription>Verify that SMS messages can be delivered to your phone</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <TestSMSButton />
+            </CardContent>
+          </Card>
         </div>
 
         <QuickActions />
+
+        <WeatherAlerts />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           <EmergencyProfile />
@@ -200,6 +242,8 @@ export default function SafeNetApp() {
           </CardContent>
         </Card>
       </main>
+
+      <PWAInstall />
     </div>
   )
 }
