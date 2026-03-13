@@ -101,16 +101,20 @@ export async function registerUser(
       }
     }
 
-    // Create activity log entry
+    // Create activity log entry (non-blocking)
     if (user?.id) {
-      await supabase.from('user_activity_logs').insert([
-        {
-          user_id: user.id,
-          action: 'user_registered',
-          description: 'User account created',
-          metadata: { email: email.toLowerCase() },
-        },
-      ])
+      try {
+        await supabase.from('user_activity_logs').insert([
+          {
+            user_id: user.id,
+            action: 'user_registered',
+            description: 'User account created',
+            metadata: { email: email.toLowerCase() },
+          },
+        ])
+      } catch (err) {
+        console.log('[v0] Error logging user registration:', err)
+      }
     }
 
     return {
@@ -163,15 +167,19 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     if (!verifyPassword(password, user.password_hash)) {
       console.log('[v0] Password verification failed for:', email)
       
-      // Log failed attempt
-      await supabase.from('user_activity_logs').insert([
-        {
-          user_id: user.id,
-          action: 'login_failed',
-          description: 'Failed login attempt',
-          metadata: { email: email.toLowerCase() },
-        },
-      ]).catch((err) => console.log('[v0] Error logging failed login:', err))
+      // Log failed attempt (non-blocking)
+      try {
+        await supabase.from('user_activity_logs').insert([
+          {
+            user_id: user.id,
+            action: 'login_failed',
+            description: 'Failed login attempt',
+            metadata: { email: email.toLowerCase() },
+          },
+        ])
+      } catch (err) {
+        console.log('[v0] Error logging failed login:', err)
+      }
 
       return {
         success: false,
@@ -182,38 +190,49 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 
     // Update last login
     const now = new Date().toISOString()
-    await supabase
-      .from('auth_users')
-      .update({
-        last_login_at: now,
-        login_count: (user.login_count || 0) + 1,
-      })
-      .eq('id', user.id)
-      .catch((err) => console.log('[v0] Error updating last login:', err))
+    try {
+      await supabase
+        .from('auth_users')
+        .update({
+          last_login_at: now,
+          login_count: (user.login_count || 0) + 1,
+        })
+        .eq('id', user.id)
+    } catch (err) {
+      console.log('[v0] Error updating last login:', err)
+    }
 
-    // Log successful login
-    await supabase.from('user_activity_logs').insert([
-      {
-        user_id: user.id,
-        action: 'login_success',
-        description: 'User logged in successfully',
-        metadata: { email: email.toLowerCase() },
-      },
-    ]).catch((err) => console.log('[v0] Error logging login:', err))
+    // Log successful login (non-blocking)
+    try {
+      await supabase.from('user_activity_logs').insert([
+        {
+          user_id: user.id,
+          action: 'login_success',
+          description: 'User logged in successfully',
+          metadata: { email: email.toLowerCase() },
+        },
+      ])
+    } catch (err) {
+      console.log('[v0] Error logging login:', err)
+    }
 
     // Create session token
     const token = `session_${crypto.randomBytes(16).toString('hex')}`
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    // Store session
-    await supabase.from('user_sessions').insert([
-      {
-        user_id: user.id,
-        session_token: token,
-        expires_at: expiresAt,
-        is_active: true,
-      },
-    ]).catch((err) => console.log('[v0] Error creating session:', err))
+    // Store session (non-blocking)
+    try {
+      await supabase.from('user_sessions').insert([
+        {
+          user_id: user.id,
+          session_token: token,
+          expires_at: expiresAt,
+          is_active: true,
+        },
+      ])
+    } catch (err) {
+      console.log('[v0] Error creating session:', err)
+    }
 
     console.log('[v0] Login successful for:', email)
 
