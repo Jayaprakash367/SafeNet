@@ -55,7 +55,7 @@ export async function registerUser(
   try {
     // Check if user already exists
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('auth_users')
       .select('email')
       .eq('email', email.toLowerCase())
       .single()
@@ -69,21 +69,24 @@ export async function registerUser(
     }
 
     const passwordHash = hashPassword(password)
-    const userId = `user_${crypto.randomBytes(8).toString('hex')}`
+
+    // Parse name into first and last name
+    const nameParts = name.trim().split(' ')
+    const firstName = nameParts[0]
+    const lastName = nameParts.slice(1).join(' ') || nameParts[0]
 
     // Create user record
     const { data: user, error: insertError } = await supabase
-      .from('users')
+      .from('auth_users')
       .insert([
         {
-          id: userId,
           email: email.toLowerCase(),
-          name: name.trim(),
+          first_name: firstName,
+          last_name: lastName,
           password_hash: passwordHash,
           role: role,
-          is_verified: false,
-          created_at: new Date().toISOString(),
-          last_login: new Date().toISOString(),
+          status: 'active',
+          email_verified: false,
         },
       ])
       .select()
@@ -98,27 +101,23 @@ export async function registerUser(
       }
     }
 
-    // Create initial user profile
-    await supabase.from('user_profiles').insert([
-      {
-        user_id: userId,
-        blood_group: null,
-        emergency_contacts: [],
-        location: null,
-        phone: null,
-        preferences: {
-          notifications_enabled: true,
-          dark_mode: false,
-          language: 'en',
+    // Create activity log entry
+    if (user?.id) {
+      await supabase.from('user_activity_logs').insert([
+        {
+          user_id: user.id,
+          action: 'user_registered',
+          description: 'User account created',
+          metadata: { email: email.toLowerCase() },
         },
-      },
-    ])
+      ])
+    }
 
     return {
       success: true,
       message: 'Account created successfully',
       user: {
-        id: userId,
+        id: user?.id || '',
         email: email.toLowerCase(),
         name: name.trim(),
         role: role as 'admin' | 'responder' | 'user',
@@ -142,14 +141,17 @@ export async function registerUser(
  */
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
   try {
+    console.log('[v0] Attempting Supabase login for:', email)
+
     // Find user
     const { data: user, error: fetchError } = await supabase
-      .from('users')
+      .from('auth_users')
       .select('*')
       .eq('email', email.toLowerCase())
       .single()
 
     if (fetchError || !user) {
+      console.log('[v0] User not found:', email)
       return {
         success: false,
         message: 'Invalid email or password',
@@ -159,17 +161,17 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 
     // Verify password
     if (!verifyPassword(password, user.password_hash)) {
+      console.log('[v0] Password verification failed for:', email)
+      
       // Log failed attempt
-      await supabase.from('auth_logs').insert([
+      await supabase.from('user_activity_logs').insert([
         {
           user_id: user.id,
-          event_type: 'login_failed',
-          status: 'failed',
-          ip_address: 'unknown',
-          user_agent: 'unknown',
-          timestamp: new Date().toISOString(),
+          action: 'login_failed',
+          description: 'Failed login attempt',
+          metadata: { email: email.toLowerCase() },
         },
-      ])
+      ]).catch((err) => console.log('[v0] Error logging failed login:', err))
 
       return {
         success: false,
@@ -181,34 +183,39 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     // Update last login
     const now = new Date().toISOString()
     await supabase
-      .from('users')
-      .update({ last_login: now })
+      .from('auth_users')
+      .update({
+        last_login_at: now,
+        login_count: (user.login_count || 0) + 1,
+      })
       .eq('id', user.id)
+      .catch((err) => console.log('[v0] Error updating last login:', err))
 
     // Log successful login
-    await supabase.from('auth_logs').insert([
+    await supabase.from('user_activity_logs').insert([
       {
         user_id: user.id,
-        event_type: 'login_success',
-        status: 'success',
-        ip_address: 'unknown',
-        user_agent: 'unknown',
-        timestamp: now,
+        action: 'login_success',
+        description: 'User logged in successfully',
+        metadata: { email: email.toLowerCase() },
       },
-    ])
+    ]).catch((err) => console.log('[v0] Error logging login:', err))
 
     // Create session token
-    const token = `token_${crypto.randomBytes(16).toString('hex')}`
+    const token = `session_${crypto.randomBytes(16).toString('hex')}`
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
     // Store session
-    await supabase.from('sessions').insert([
+    await supabase.from('user_sessions').insert([
       {
         user_id: user.id,
-        token: token,
-        created_at: now,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        session_token: token,
+        expires_at: expiresAt,
+        is_active: true,
       },
-    ])
+    ]).catch((err) => console.log('[v0] Error creating session:', err))
+
+    console.log('[v0] Login successful for:', email)
 
     return {
       success: true,
@@ -216,11 +223,11 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
-        role: user.role,
-        isVerified: user.is_verified,
+        name: `${user.first_name} ${user.last_name}`,
+        role: user.role as 'admin' | 'responder' | 'user',
+        isVerified: user.email_verified,
         createdAt: user.created_at,
-        lastLogin: user.last_login,
+        lastLogin: user.last_login_at,
       },
       token,
     }
