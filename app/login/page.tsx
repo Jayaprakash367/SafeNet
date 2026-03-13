@@ -117,7 +117,7 @@ export default function AuthPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/login-supabase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,7 +169,7 @@ export default function AuthPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/auth/signup-supabase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -199,7 +199,16 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Top-left gradient blob */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse opacity-50"></div>
+        {/* Bottom-right gradient blob */}
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse opacity-50 animation-delay-2000"></div>
+        {/* Center accent blob */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent/5 rounded-full blur-3xl opacity-30"></div>
+      </div>
       {/* Animated Background Elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl animate-pulse"></div>
@@ -311,7 +320,7 @@ export default function AuthPage() {
                       setLoginTouched({ ...loginTouched, email: true })
                       validateLoginField('email', loginEmail)
                     }}
-                    className={`transition-all duration-300 ease-out focus:ring-2 border-2 hover:border-primary/50 ${
+                    className={`transition-all duration-300 ease-out focus:ring-2 border-2 hover:border-primary/50 animate-fade-in ${
                       loginErrors.email
                         ? 'border-destructive focus:ring-destructive'
                         : 'border-border focus:ring-primary focus:border-primary'
