@@ -107,8 +107,9 @@ export async function registerUser(
         await supabase.from('user_activity_logs').insert([
           {
             user_id: user.id,
-            action: 'user_registered',
-            description: 'User account created',
+            activity_type: 'signup',
+            activity_description: 'User account created',
+            status: 'success',
             metadata: { email: email.toLowerCase() },
           },
         ])
@@ -172,8 +173,9 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
         await supabase.from('user_activity_logs').insert([
           {
             user_id: user.id,
-            action: 'login_failed',
-            description: 'Failed login attempt',
+            activity_type: 'failed_login',
+            activity_description: 'Failed login attempt',
+            status: 'failed',
             metadata: { email: email.toLowerCase() },
           },
         ])
@@ -207,8 +209,9 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
       await supabase.from('user_activity_logs').insert([
         {
           user_id: user.id,
-          action: 'login_success',
-          description: 'User logged in successfully',
+          activity_type: 'login',
+          activity_description: 'User logged in successfully',
+          status: 'success',
           metadata: { email: email.toLowerCase() },
         },
       ])
