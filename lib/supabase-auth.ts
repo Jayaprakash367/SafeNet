@@ -27,12 +27,13 @@ export interface AuthResponse {
 }
 
 /**
- * Hash password for storage
+ * Hash password for storage - MUST MATCH auth.ts
  */
 export function hashPassword(password: string): string {
+  const salt = process.env.PASSWORD_SALT || 'safenet-disaster-salt'
   return crypto
     .createHash('sha256')
-    .update(password + (process.env.PASSWORD_SALT || 'safenet-disaster-salt'))
+    .update(password + salt)
     .digest('hex')
 }
 

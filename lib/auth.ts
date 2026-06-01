@@ -19,32 +19,17 @@ export interface AuthResponse {
   errors?: Record<string, string>
 }
 
-// Mock user database with hashed passwords
-const mockUsers: Record<string, { email: string; passwordHash: string; name: string; role: string; isVerified: boolean }> = {
-  'demo@safenet.gov': {
-    email: 'demo@safenet.gov',
-    passwordHash: hashPassword('password123'),
-    name: 'Demo Responder',
-    role: 'responder',
-    isVerified: true,
-  },
-  'admin@safenet.gov': {
-    email: 'admin@safenet.gov',
-    passwordHash: hashPassword('admin123'),
-    name: 'Admin User',
-    role: 'admin',
-    isVerified: true,
-  },
-}
+// Empty mock database - all users must register
+const mockUsers: Record<string, { email: string; passwordHash: string; name: string; role: string; isVerified: boolean }> = {}
 
 // Store for user sessions
 export const userSessions = new Map<string, User>()
 
 /**
- * Hash password using crypto
+ * Hash password using crypto - MUST MATCH supabase-auth.ts
  */
 function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password + process.env.PASSWORD_SALT || 'safenet-salt').digest('hex')
+  return crypto.createHash('sha256').update(password + (process.env.PASSWORD_SALT || 'safenet-disaster-salt')).digest('hex')
 }
 
 /**
