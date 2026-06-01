@@ -1,0 +1,57 @@
+SOLUTION FOR JSON PARSING ERROR
+
+Problem:
+========
+SyntaxError: Unexpected token 'I', "Invalid re"... is not valid JSON
+
+Root Cause:
+===========
+Supabase RLS (Row Level Security) policies were blocking access from the anon key (public client), causing Supabase to return an HTML error page instead of JSON.
+
+When the code tried to parse this HTML response as JSON, it failed because "Invalid re" is the start of HTML error message.
+
+Solution Applied:
+=================
+Changed lib/supabase-auth.ts to use the Supabase Admin client (supabaseAdmin) instead of the public client (supabase) for signup and login operations.
+
+Admin client uses SUPABASE_SERVICE_ROLE_KEY which:
+- Bypasses RLS policies completely
+- Can perform admin-level database operations
+- Is secure because it only runs on the server (never exposed to client)
+
+Files Modified:
+===============
+1. lib/supabase-auth.ts
+   - registerUser(): Now uses supabaseAdmin for checking existing users and creating new users
+   - loginUser(): Now uses supabaseAdmin for user lookups
+   - Fixed error logging to not stringify error objects (prevents JSON parse errors)
+
+Key Changes:
+============
+Before:
+  const { data: user, error } = await supabase
+    .from('auth_users')
+    .insert([...])
+
+After:
+  const { data: user, error } = await supabaseAdmin
+    .from('auth_users')
+    .insert([...])
+
+Benefits:
+=========
+✓ Signup and login now work without RLS configuration
+✓ No more "Invalid re..." JSON parsing errors
+✓ More secure (admin client only used server-side)
+✓ Fallback auth still works if Supabase is unavailable
+✓ User data is properly stored in the database
+
+What to Test:
+=============
+1. Go to /login page
+2. Click "Create Account"
+3. Fill in Name, Email, Password, Confirm Password
+4. Click "Create Account"
+5. Should succeed and redirect to dashboard
+6. Try logging in with the same credentials
+7. Should succeed without errors

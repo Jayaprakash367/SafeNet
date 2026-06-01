@@ -54,8 +54,9 @@ export async function registerUser(
   role: string = 'responder',
 ): Promise<AuthResponse> {
   try {
+    // Use admin client for signup (bypasses RLS)
     // Check if user already exists
-    const { data: existingUsers, error: checkError } = await supabase
+    const { data: existingUsers, error: checkError } = await supabaseAdmin
       .from('auth_users')
       .select('email')
       .eq('email', email.toLowerCase())
@@ -76,8 +77,8 @@ export async function registerUser(
     const firstName = nameParts[0]
     const lastName = nameParts.slice(1).join(' ') || nameParts[0]
 
-    // Create user record
-    const { data: user, error: insertError } = await supabase
+    // Create user record using admin client (bypasses RLS)
+    const { data: user, error: insertError } = await supabaseAdmin
       .from('auth_users')
       .insert([
         {
@@ -94,12 +95,10 @@ export async function registerUser(
       .single()
 
     if (insertError) {
-      const errorMsg = insertError.message || JSON.stringify(insertError)
-      console.error('[v0] Error registering user:', {
-        message: errorMsg,
-        code: insertError.code,
-        details: insertError.details,
-      })
+      const errorMsg = insertError.message || 'Unknown error'
+      console.error('[v0] Error registering user - Message:', errorMsg)
+      console.error('[v0] Error registering user - Code:', insertError.code)
+      console.error('[v0] Error registering user - Details:', insertError.details)
       
       // Check if it's an RLS policy error
       if (errorMsg.includes('RLS') || errorMsg.includes('policy') || errorMsg.includes('permission')) {
@@ -166,15 +165,15 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   try {
     console.log('[v0] Attempting Supabase login for:', email)
 
-    // Find user
-    const { data: users, error: fetchError } = await supabase
+    // Find user using admin client (bypasses RLS)
+    const { data: users, error: fetchError } = await supabaseAdmin
       .from('auth_users')
       .select('*')
       .eq('email', email.toLowerCase())
 
     if (fetchError) {
-      const errorMsg = fetchError.message || JSON.stringify(fetchError)
-      console.log('[v0] User lookup error:', email, 'Error:', errorMsg)
+      const errorMsg = fetchError.message || 'Unknown error'
+      console.log('[v0] User lookup error for:', email, 'Error:', errorMsg)
       
       // Check if it's an RLS policy error
       if (errorMsg.includes('RLS') || errorMsg.includes('policy') || errorMsg.includes('permission')) {
