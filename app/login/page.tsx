@@ -200,23 +200,28 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Animated background elements */}
+      {/* Enhanced animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Top-left gradient blob */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse opacity-50"></div>
+        {/* Top-left gradient blob with animation */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-3xl animate-float opacity-60"></div>
         {/* Bottom-right gradient blob */}
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse opacity-50 animation-delay-2000"></div>
-        {/* Center accent blob */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent/5 rounded-full blur-3xl opacity-30"></div>
-      </div>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gradient-to-tl from-secondary/20 to-secondary/5 rounded-full blur-3xl animate-pulse opacity-60 animation-delay-2000"></div>
+        {/* Center accent orb */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-b from-accent/10 to-transparent rounded-full blur-3xl animate-glow-pulse opacity-40"></div>
+        {/* Animated accent lines */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary to-transparent animate-fade-in"></div>
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-secondary to-transparent animate-fade-in animation-delay-2000"></div>
+        </div>
       </div>
 
-      {/* Auth Card */}
-      <Card className="w-full max-w-2xl relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300 border-2 border-primary/20 overflow-hidden">
+      {/* Auth Card with glow effect */}
+      <div className="w-full max-w-2xl relative z-10">
+        {/* Card glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 rounded-2xl blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {/* Main Card */}
+      </div>
+      <Card className="w-full max-w-2xl relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-500 border border-primary/30 backdrop-blur-sm bg-slate-800/80 overflow-hidden">
         <div className="flex">
           {/* Left Column - Branding & Features */}
           <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary to-secondary p-12 flex-col justify-between text-white">
@@ -379,10 +384,17 @@ export default function AuthPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-base transition-all duration-300 ease-out hover:shadow-lg"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-base transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/50 active:scale-95"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Authenticating...' : 'Login to SafeNet'}
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Authenticating...
+                    </span>
+                  ) : (
+                    'Login to SafeNet'
+                  )}
                 </Button>
 
                 <div className="p-4 bg-secondary/10 border border-secondary/30 rounded-lg">
@@ -564,10 +576,17 @@ export default function AuthPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-base transition-all duration-300 ease-out hover:shadow-lg"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-base transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/50 active:scale-95"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Creating Account...
+                    </span>
+                  ) : (
+                    'Create Account'
+                  )}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
