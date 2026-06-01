@@ -55,13 +55,13 @@ export async function registerUser(
 ): Promise<AuthResponse> {
   try {
     // Check if user already exists
-    const { data: existingUser } = await supabase
+    const { data: existingUsers, error: checkError } = await supabase
       .from('auth_users')
       .select('email')
       .eq('email', email.toLowerCase())
-      .single()
 
-    if (existingUser) {
+    // If there's data, user exists
+    if (existingUsers && existingUsers.length > 0) {
       return {
         success: false,
         message: 'Email already registered',
@@ -150,20 +150,21 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     console.log('[v0] Attempting Supabase login for:', email)
 
     // Find user
-    const { data: user, error: fetchError } = await supabase
+    const { data: users, error: fetchError } = await supabase
       .from('auth_users')
       .select('*')
       .eq('email', email.toLowerCase())
-      .single()
 
-    if (fetchError || !user) {
-      console.log('[v0] User not found:', email)
+    if (fetchError || !users || users.length === 0) {
+      console.log('[v0] User not found:', email, 'Error:', fetchError?.message)
       return {
         success: false,
         message: 'Invalid email or password',
         errors: { email: 'User not found' },
       }
     }
+
+    const user = users[0]
 
     // Verify password
     if (!verifyPassword(password, user.password_hash)) {

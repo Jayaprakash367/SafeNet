@@ -117,6 +117,7 @@ export default function AuthPage() {
         body: JSON.stringify({
           email: signupEmail.toLowerCase(),
           password: signupPassword,
+          confirmPassword: confirmPassword,
           name: signupName.trim(),
         }),
       })
@@ -379,11 +380,31 @@ export default function AuthPage() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onBlur={() => setSignupTouched({ ...signupTouched, confirmPassword: true })}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      // Real-time validation
+                      if (signupTouched.confirmPassword && e.target.value !== signupPassword) {
+                        setSignupErrors({
+                          ...signupErrors,
+                          confirmPassword: 'Passwords do not match',
+                        })
+                      } else if (signupTouched.confirmPassword) {
+                        const { confirmPassword: _, ...rest } = signupErrors
+                        setSignupErrors(rest)
+                      }
+                    }}
+                    onBlur={() => {
+                      setSignupTouched({ ...signupTouched, confirmPassword: true })
+                      if (confirmPassword !== signupPassword) {
+                        setSignupErrors({
+                          ...signupErrors,
+                          confirmPassword: 'Passwords do not match',
+                        })
+                      }
+                    }}
                     disabled={isLoading}
                     className={`bg-slate-900/50 border ${
-                      signupErrors.confirmPassword ? 'border-red-500' : 'border-slate-700'
+                      signupErrors.confirmPassword ? 'border-red-500' : confirmPassword && confirmPassword === signupPassword && signupTouched.confirmPassword ? 'border-green-500' : 'border-slate-700'
                     } text-white placeholder-slate-500 focus:border-primary transition-all pr-10`}
                   />
                   <button
