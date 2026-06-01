@@ -94,11 +94,15 @@ export async function registerUser(
       .single()
 
     if (insertError) {
-      console.error('[v0] Error registering user:', insertError)
+      console.error('[v0] Error registering user:', {
+        message: insertError.message,
+        code: insertError.code,
+        details: insertError.details,
+      })
       return {
         success: false,
-        message: 'Failed to create account',
-        errors: { form: 'An error occurred during registration' },
+        message: 'Failed to create account: ' + (insertError.message || 'Unknown error'),
+        errors: { form: insertError.message || 'An error occurred during registration' },
       }
     }
 
@@ -133,11 +137,12 @@ export async function registerUser(
       },
     }
   } catch (error) {
-    console.error('[v0] Registration error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[v0] Registration error:', errorMessage)
     return {
       success: false,
-      message: 'An unexpected error occurred',
-      errors: { form: 'Server error' },
+      message: 'An unexpected error occurred: ' + errorMessage,
+      errors: { form: errorMessage },
     }
   }
 }
