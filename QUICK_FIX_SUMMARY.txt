@@ -1,0 +1,42 @@
+================================================================================
+                        SAFENET RLS SETUP - QUICK FIX
+================================================================================
+
+ERROR YOU'RE SEEING:
+  "SyntaxError: Unexpected token 'I', "Invalid re"... is not valid JSON"
+
+ROOT CAUSE:
+  Row Level Security (RLS) policies are not enabled on Supabase tables
+
+QUICK FIX (3 steps - 2 minutes):
+
+1. Go to: https://supabase.com → Your SafeNet Project → SQL Editor
+
+2. Copy-paste the entire contents of:
+   /scripts/enable_rls_policies.sql
+
+3. Click "Run"
+
+WHAT HAPPENS AFTER:
+  ✓ Users can sign up
+  ✓ Users can login  
+  ✓ User data is stored permanently
+  ✓ Password confirmation will work correctly
+  ✓ No more JSON parsing errors
+
+CHANGES MADE TO CODE:
+  ✓ Improved error logging in lib/supabase-auth.ts
+  ✓ Better error messages for RLS policy errors
+  ✓ Fallback authentication as backup
+
+AFTER SETUP IS COMPLETE:
+  Go to /login and test:
+  1. Click "Create Account"
+  2. Fill in: name, email, password
+  3. Confirm password matches
+  4. Click "Create Account"
+  5. Login with same email/password
+
+================================================================================
+
+Need help? Read: SETUP_RLS_POLICIES.md

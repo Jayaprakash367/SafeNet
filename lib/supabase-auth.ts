@@ -94,15 +94,27 @@ export async function registerUser(
       .single()
 
     if (insertError) {
+      const errorMsg = insertError.message || JSON.stringify(insertError)
       console.error('[v0] Error registering user:', {
-        message: insertError.message,
+        message: errorMsg,
         code: insertError.code,
         details: insertError.details,
       })
+      
+      // Check if it's an RLS policy error
+      if (errorMsg.includes('RLS') || errorMsg.includes('policy') || errorMsg.includes('permission')) {
+        console.error('[v0] RLS Policy Error - tables may not have RLS policies configured')
+        return {
+          success: false,
+          message: 'Database configuration error - please contact administrator',
+          errors: { form: 'System is not properly configured. Please execute the RLS setup script.' },
+        }
+      }
+      
       return {
         success: false,
-        message: 'Failed to create account: ' + (insertError.message || 'Unknown error'),
-        errors: { form: insertError.message || 'An error occurred during registration' },
+        message: 'Failed to create account: ' + errorMsg,
+        errors: { form: errorMsg || 'An error occurred during registration' },
       }
     }
 
@@ -160,12 +172,28 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
       .select('*')
       .eq('email', email.toLowerCase())
 
-    if (fetchError || !users || users.length === 0) {
-      console.log('[v0] User not found:', email, 'Error:', fetchError?.message)
+    if (fetchError) {
+      const errorMsg = fetchError.message || JSON.stringify(fetchError)
+      console.log('[v0] User lookup error:', email, 'Error:', errorMsg)
+      
+      // Check if it's an RLS policy error
+      if (errorMsg.includes('RLS') || errorMsg.includes('policy') || errorMsg.includes('permission')) {
+        console.error('[v0] RLS Policy Error on login - tables may not have RLS policies configured')
+      }
+      
       return {
         success: false,
         message: 'Invalid email or password',
-        errors: { email: 'User not found' },
+        errors: { email: 'Invalid credentials' },
+      }
+    }
+
+    if (!users || users.length === 0) {
+      console.log('[v0] User not found:', email)
+      return {
+        success: false,
+        message: 'Invalid email or password',
+        errors: { email: 'Invalid credentials' },
       }
     }
 
