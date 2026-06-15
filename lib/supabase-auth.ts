@@ -6,7 +6,13 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+// Only create admin client if service role key is available
+export const supabaseAdmin = supabaseServiceKey && supabaseUrl ? createClient(supabaseUrl, supabaseServiceKey) : null
+
+// Check if critical env vars are missing
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('[v0] Supabase environment variables missing - auth will use fallback only')
+}
 
 export interface AuthUser {
   id: string
@@ -54,6 +60,16 @@ export async function registerUser(
   role: string = 'responder',
 ): Promise<AuthResponse> {
   try {
+    // Check if admin client is available
+    if (!supabaseAdmin) {
+      console.log('[v0] Supabase admin client not available, skipping database registration')
+      return {
+        success: false,
+        message: 'Database unavailable',
+        errors: { form: 'Database is not configured' },
+      }
+    }
+
     // Use admin client for signup (bypasses RLS)
     console.log('[v0] Checking if user exists:', email)
     
@@ -176,6 +192,16 @@ export async function registerUser(
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
   try {
     console.log('[v0] Attempting Supabase login for:', email)
+
+    // Check if admin client is available
+    if (!supabaseAdmin) {
+      console.log('[v0] Supabase admin client not available for login, returning error')
+      return {
+        success: false,
+        message: 'Invalid email or password',
+        errors: { email: 'Invalid credentials' },
+      }
+    }
 
     // Find user using admin client (bypasses RLS)
     const { data: users, error: fetchError } = await supabaseAdmin
