@@ -5,14 +5,37 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-// Only create admin client if service role key is available
-export const supabaseAdmin = supabaseServiceKey && supabaseUrl ? createClient(supabaseUrl, supabaseServiceKey) : null
+// Validate Supabase URL format
+const isValidSupabaseUrl = supabaseUrl && supabaseUrl.includes('supabase.co')
+
+// Create clients only if we have valid configuration
+let supabase: any = null
+let supabaseAdmin: any = null
+
+if (isValidSupabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey)
+  } catch (error) {
+    console.error('[v0] Failed to create Supabase client:', error instanceof Error ? error.message : 'Unknown error')
+  }
+}
+
+if (isValidSupabaseUrl && supabaseServiceKey) {
+  try {
+    supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+  } catch (error) {
+    console.error('[v0] Failed to create Supabase admin client:', error instanceof Error ? error.message : 'Unknown error')
+  }
+}
 
 // Check if critical env vars are missing
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('[v0] Supabase environment variables missing - auth will use fallback only')
+if (!isValidSupabaseUrl || !supabaseAnonKey) {
+  console.warn('[v0] Supabase environment variables missing or invalid - auth will use fallback only')
+  console.warn('[v0] Supabase URL valid:', isValidSupabaseUrl)
+  console.warn('[v0] Supabase Anon Key exists:', !!supabaseAnonKey)
 }
+
+export { supabase, supabaseAdmin }
 
 export interface AuthUser {
   id: string
@@ -62,25 +85,35 @@ export async function registerUser(
   try {
     // Check if admin client is available
     if (!supabaseAdmin) {
-      console.log('[v0] Supabase admin client not available, skipping database registration')
+      console.log('[v0] Supabase unavailable - database registration not possible')
       return {
         success: false,
-        message: 'Database unavailable',
-        errors: { form: 'Database is not configured' },
+        message: 'Database service unavailable',
+        errors: { form: 'Cannot register with database at this time' },
       }
     }
 
     // Use admin client for signup (bypasses RLS)
-    console.log('[v0] Checking if user exists:', email)
+    console.log('[v0] Checking if user exists in Supabase:', email)
     
-    // Check if user already exists
-    const { data: existingUsers, error: checkError } = await supabaseAdmin
-      .from('auth_users')
-      .select('email')
-      .eq('email', email.toLowerCase())
+    // Check if user already exists - wrapped in try/catch for safety
+    let existingUsers: any = []
+    let checkError: any = null
+    
+    try {
+      const result = await supabaseAdmin
+        .from('auth_users')
+        .select('email')
+        .eq('email', email.toLowerCase())
+      existingUsers = result.data || []
+      checkError = result.error
+    } catch (err) {
+      console.error('[v0] Exception checking existing user:', err instanceof Error ? err.message : 'Unknown error')
+      checkError = err
+    }
     
     if (checkError) {
-      console.error('[v0] Error checking existing user:', checkError.message)
+      console.error('[v0] Error checking existing user:', checkError.message || 'Unknown error')
     }
 
     // If there's data, user exists
@@ -112,12 +145,22 @@ export async function registerUser(
     }
     console.log('[v0] User payload keys:', Object.keys(userPayload))
     
-    const { data: insertedUsers, error: insertError } = await supabaseAdmin
-      .from('auth_users')
-      .insert([userPayload])
-      .select()
+    let insertedUsers: any = []
+    let insertError: any = null
+    
+    try {
+      const result = await supabaseAdmin
+        .from('auth_users')
+        .insert([userPayload])
+        .select()
+      insertedUsers = result.data || []
+      insertError = result.error
+    } catch (err) {
+      console.error('[v0] Exception inserting user:', err instanceof Error ? err.message : 'Unknown error')
+      insertError = err
+    }
 
-    console.log('[v0] Insert response received. Data:', insertedUsers ? 'yes' : 'no', 'Error:', insertError ? 'yes' : 'no')
+    console.log('[v0] Insert response received. Data:', insertedUsers && insertedUsers.length > 0 ? 'yes' : 'no', 'Error:', insertError ? 'yes' : 'no')
     const user = insertedUsers?.[0] || null
 
     if (insertError) {
@@ -204,13 +247,23 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     }
 
     // Find user using admin client (bypasses RLS)
-    const { data: users, error: fetchError } = await supabaseAdmin
-      .from('auth_users')
-      .select('*')
-      .eq('email', email.toLowerCase())
+    let users: any = []
+    let fetchError: any = null
+    
+    try {
+      const result = await supabaseAdmin
+        .from('auth_users')
+        .select('*')
+        .eq('email', email.toLowerCase())
+      users = result.data || []
+      fetchError = result.error
+    } catch (err) {
+      console.error('[v0] Exception during user lookup:', err instanceof Error ? err.message : 'Unknown error')
+      fetchError = err
+    }
 
     if (fetchError) {
-      const errorMsg = fetchError.message || 'Unknown error'
+      const errorMsg = fetchError?.message ? String(fetchError.message) : 'Unknown error'
       console.log('[v0] User lookup error for:', email, 'Error:', errorMsg)
       
       // Check if it's an RLS policy error
