@@ -55,11 +55,17 @@ export async function registerUser(
 ): Promise<AuthResponse> {
   try {
     // Use admin client for signup (bypasses RLS)
+    console.log('[v0] Checking if user exists:', email)
+    
     // Check if user already exists
     const { data: existingUsers, error: checkError } = await supabaseAdmin
       .from('auth_users')
       .select('email')
       .eq('email', email.toLowerCase())
+    
+    if (checkError) {
+      console.error('[v0] Error checking existing user:', checkError.message)
+    }
 
     // If there's data, user exists
     if (existingUsers && existingUsers.length > 0) {
@@ -78,41 +84,47 @@ export async function registerUser(
     const lastName = nameParts.slice(1).join(' ') || nameParts[0]
 
     // Create user record using admin client (bypasses RLS)
-    const { data: user, error: insertError } = await supabaseAdmin
+    console.log('[v0] Preparing to insert user:', email)
+    const userPayload = {
+      email: email.toLowerCase(),
+      first_name: firstName,
+      last_name: lastName,
+      password_hash: passwordHash,
+      role: role,
+      status: 'active',
+      email_verified: false,
+    }
+    console.log('[v0] User payload keys:', Object.keys(userPayload))
+    
+    const { data: insertedUsers, error: insertError } = await supabaseAdmin
       .from('auth_users')
-      .insert([
-        {
-          email: email.toLowerCase(),
-          first_name: firstName,
-          last_name: lastName,
-          password_hash: passwordHash,
-          role: role,
-          status: 'active',
-          email_verified: false,
-        },
-      ])
+      .insert([userPayload])
       .select()
-      .single()
+
+    console.log('[v0] Insert response received. Data:', insertedUsers ? 'yes' : 'no', 'Error:', insertError ? 'yes' : 'no')
+    const user = insertedUsers?.[0] || null
 
     if (insertError) {
-      const errorMsg = insertError.message || 'Unknown error'
+      // Safely extract error message without stringifying the entire error object
+      const errorMsg = insertError?.message ? String(insertError.message) : 'Unknown error'
+      const errorCode = insertError?.code ? String(insertError.code) : 'UNKNOWN'
+      
       console.error('[v0] Error registering user - Message:', errorMsg)
-      console.error('[v0] Error registering user - Code:', insertError.code)
-      console.error('[v0] Error registering user - Details:', insertError.details)
+      console.error('[v0] Error registering user - Code:', errorCode)
       
       // Check if it's an RLS policy error
-      if (errorMsg.includes('RLS') || errorMsg.includes('policy') || errorMsg.includes('permission')) {
-        console.error('[v0] RLS Policy Error - tables may not have RLS policies configured')
+      if (errorMsg.toLowerCase().includes('rls') || errorMsg.toLowerCase().includes('policy') || errorMsg.toLowerCase().includes('permission')) {
+        console.error('[v0] RLS Policy Error detected')
         return {
           success: false,
-          message: 'Database configuration error - please contact administrator',
-          errors: { form: 'System is not properly configured. Please execute the RLS setup script.' },
+          message: 'Database configuration error',
+          errors: { form: 'System configuration issue. Please execute the RLS setup script.' },
         }
       }
       
       return {
         success: false,
-        message: 'Failed to create account: ' + errorMsg,
+        message: 'Failed to create account',
         errors: { form: errorMsg || 'An error occurred during registration' },
       }
     }
