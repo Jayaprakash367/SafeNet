@@ -404,7 +404,11 @@ export default function AuthPage() {
                     }}
                     disabled={isLoading}
                     className={`bg-slate-900/50 border ${
-                      signupErrors.confirmPassword ? 'border-red-500' : confirmPassword && confirmPassword === signupPassword && signupTouched.confirmPassword ? 'border-green-500' : 'border-slate-700'
+                      signupErrors.confirmPassword
+                        ? 'border-red-500'
+                        : confirmPassword && confirmPassword === signupPassword && signupTouched.confirmPassword
+                        ? 'border-green-500'
+                        : 'border-slate-700'
                     } text-white placeholder-slate-500 focus:border-primary transition-all pr-10`}
                   />
                   <button
