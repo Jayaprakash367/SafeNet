@@ -1,15 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { registerUser } from '@/lib/supabase-auth'
-import { fallbackAuth } from '@/lib/auth-fallback'
-import { logAuthEvent } from '@/lib/behavior-tracking'
-import { validateEmail, validatePassword, validateName } from '@/lib/auth'
+import { validateEmail, validateName, validatePassword } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+
+function getSignupError(error: {
+  code?: string
+  message: string
+  name?: string
+  status?: number | null
+}) {
+  const details = `${error.code ?? ''} ${error.message}`.toLowerCase()
+
+  if (error.status === 429) {
+    return { status: 429, message: 'Too many sign-up attempts. Please wait and try again.' }
+  }
+
+  if (
+    error.name === 'AuthRetryableFetchError' ||
+    error.status === 0 ||
+    details.includes('fetch failed') ||
+    details.includes('network request failed')
+  ) {
+    return {
+      status: 503,
+      message: 'Authentication is temporarily unavailable. Please try again shortly.',
+    }
+  }
+
+  if (error.code === 'weak_password' || details.includes('weak password')) {
+    return { status: 400, message: 'Choose a stronger password and try again.' }
+  }
+
+  if (error.code === 'email_address_invalid') {
+    return { status: 400, message: 'Please use a valid email address.' }
+  }
+
+  if (error.status !== undefined && error.status !== null && error.status >= 500) {
+    return {
+      status: 503,
+      message: 'Authentication is temporarily unavailable. Please try again shortly.',
+    }
+  }
+
+  return {
+    status: 400,
+    message: 'We could not create the account. Check your details or try signing in.',
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email, password, confirmPassword, name } = body
+    const body = (await request.json()) as Record<string, unknown>
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    const password = typeof body.password === 'string' ? body.password : ''
+    const confirmPassword =
+      typeof body.confirmPassword === 'string' ? body.confirmPassword : ''
 
-    // Validate inputs
     const nameValidation = validateName(name)
     if (!nameValidation.valid) {
       return NextResponse.json(
@@ -18,7 +64,7 @@ export async function POST(request: NextRequest) {
           message: nameValidation.message,
           errors: { name: nameValidation.message },
         },
-        { status: 400 },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
@@ -30,7 +76,7 @@ export async function POST(request: NextRequest) {
           message: emailValidation.message,
           errors: { email: emailValidation.message },
         },
-        { status: 400 },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
@@ -42,83 +88,79 @@ export async function POST(request: NextRequest) {
           message: passwordValidation.message,
           errors: { password: passwordValidation.message },
         },
-        { status: 400 },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
-    // Verify passwords match
     if (password !== confirmPassword) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Passwords do not match',
-          errors: { confirmPassword: 'Passwords do not match' },
+          message: 'Passwords do not match.',
+          errors: { confirmPassword: 'Passwords do not match.' },
         },
-        { status: 400 },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
-    // Try Supabase first
-    console.log('[v0] Attempting Supabase signup for:', email)
-    const result = await registerUser(email, password, name, 'responder')
+    const supabase = await createClient()
+    const emailRedirectTo =
+      process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+      new URL('/auth/callback', request.nextUrl.origin).toString()
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo,
+        data: { name },
+      },
+    })
 
-    if (result.success && result.user) {
-      // Log successful signup
-      await logAuthEvent(result.user.id, 'signup', true).catch((err) => {
-        console.warn('[v0] Could not log auth event:', err)
-      })
-
+    if (error) {
+      const result = getSignupError(error)
       return NextResponse.json(
-        {
-          success: true,
-          message: 'Account created successfully',
-          user: result.user,
-        },
-        { status: 201 },
+        { success: false, message: result.message, errors: { form: result.message } },
+        { status: result.status, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
-    // If Supabase fails, try fallback
-    console.log('[v0] Supabase unavailable, using fallback auth')
-    const fallbackUser = fallbackAuth.registerUser(email, password, name, 'responder')
-
-    if (fallbackUser) {
-      return NextResponse.json(
-        {
-          success: true,
-          message: 'Account created successfully (offline mode)',
-          user: {
-            id: fallbackUser.id,
-            email: fallbackUser.email,
-            name: fallbackUser.name,
-            role: fallbackUser.role as 'admin' | 'responder' | 'user',
-            isVerified: false,
-            createdAt: fallbackUser.createdAt,
-            lastLogin: fallbackUser.lastLogin,
-          },
-        },
-        { status: 201 },
-      )
-    }
+    const user = data.user
+      ? {
+          id: data.user.id,
+          email: data.user.email ?? email,
+          name,
+          phone: data.user.phone ?? '',
+          role: 'user' as const,
+          isVerified: Boolean(data.user.email_confirmed_at),
+          createdAt: data.user.created_at,
+          lastLogin: data.user.last_sign_in_at ?? new Date().toISOString(),
+        }
+      : null
+    const authenticated = Boolean(data.session && data.user)
 
     return NextResponse.json(
       {
-        success: false,
-        message: result.message || 'Signup failed',
-        errors: result.errors || { form: 'Unable to create account' },
+        success: true,
+        authenticated,
+        requiresConfirmation: !authenticated,
+        message: authenticated
+          ? 'Account created successfully. Redirecting...'
+          : 'Account created. Check your email for a confirmation link before signing in.',
+        user,
       },
-      { status: 400 },
+      {
+        status: authenticated ? 201 : 202,
+        headers: { 'Cache-Control': 'no-store' },
+      },
     )
   } catch (error) {
-    console.error('[v0] Signup API error:', error)
-
+    console.error('[v0] Supabase sign-up request failed:', error)
     return NextResponse.json(
       {
         success: false,
-        message: 'An unexpected error occurred',
-        errors: { form: 'Server error' },
+        message: 'Authentication is temporarily unavailable. Please try again shortly.',
       },
-      { status: 500 },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
     )
   }
 }

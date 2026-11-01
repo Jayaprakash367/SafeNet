@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 interface UserData {
   name: string
@@ -43,10 +44,16 @@ export function UserProfileHeader() {
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("safenet-auth")
-    localStorage.removeItem("safenet-user")
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      await createClient().auth.signOut({ scope: 'local' })
+    } catch (error) {
+      console.error('[v0] Supabase sign-out failed:', error)
+    } finally {
+      localStorage.removeItem('safenet-auth')
+      localStorage.removeItem('safenet-user')
+      router.replace('/login')
+    }
   }
 
   const requestLocation = () => {

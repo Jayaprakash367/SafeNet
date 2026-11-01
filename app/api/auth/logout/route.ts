@@ -1,28 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { logoutUser } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
-    const token = req.cookies.get('safenet-token')?.value
+    const supabase = await createClient()
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
 
-    if (token) {
-      logoutUser(token)
+    if (error) {
+      return NextResponse.json(
+        { success: false, message: 'Unable to end the session. Please try again.' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      )
     }
 
-    // Create response and clear cookie
-    const response = NextResponse.json({
-      success: true,
-      message: 'Logged out successfully',
-    })
-
-    response.cookies.delete('safenet-token')
-
-    return response
-  } catch (error) {
-    console.error('[v0] Logout error:', error)
     return NextResponse.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 },
+      { success: true, message: 'Logged out successfully.' },
+      { headers: { 'Cache-Control': 'no-store' } },
+    )
+  } catch (error) {
+    console.error('[v0] Supabase sign-out request failed:', error)
+    return NextResponse.json(
+      { success: false, message: 'Unable to end the session. Please try again.' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
     )
   }
 }

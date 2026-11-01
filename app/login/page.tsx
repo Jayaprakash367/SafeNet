@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +32,16 @@ export default function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({})
   const [signupTouched, setSignupTouched] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    const authError = new URLSearchParams(window.location.search).get('authError')
+
+    if (authError === 'service') {
+      setError('Authentication is temporarily unavailable. Please try again shortly.')
+    } else if (authError === 'callback') {
+      setError('We could not verify that email link. Please request a new confirmation email.')
+    }
+  }, [])
 
   // Validate email
   const validateEmail = (email: string): boolean => {
@@ -77,8 +87,8 @@ export default function AuthPage() {
         return
       }
 
-      setSuccess('Login successful! Redirecting...')
-      setTimeout(() => router.push('/'), 1500)
+      setSuccess(data.message || 'Login successful! Redirecting...')
+      setTimeout(() => router.replace('/'), 900)
     } catch (err) {
       console.error('[v0] Login error:', err)
       setError('Network error. Please check your connection.')
@@ -132,8 +142,13 @@ export default function AuthPage() {
         return
       }
 
-      setSuccess('Account created successfully! Redirecting...')
-      setTimeout(() => router.push('/'), 1500)
+      if (data.requiresConfirmation) {
+        setSuccess(data.message)
+        return
+      }
+
+      setSuccess(data.message || 'Account created successfully! Redirecting...')
+      setTimeout(() => router.replace('/'), 900)
     } catch (err) {
       console.error('[v0] Signup error:', err)
       setError('Network error. Please check your connection.')
