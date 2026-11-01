@@ -44,7 +44,7 @@ export function CommunicationHub() {
       id: "data_internet",
       name: "Internet Data",
       type: "data",
-      status: navigator.onLine ? "available" : "unavailable",
+      status: "available",
       priority: 3,
       description: "App-based alerts and real-time updates",
       icon: Radio,
@@ -73,6 +73,7 @@ export function CommunicationHub() {
       )
     }
 
+    updateConnectionStatus()
     window.addEventListener("online", updateConnectionStatus)
     window.addEventListener("offline", updateConnectionStatus)
 

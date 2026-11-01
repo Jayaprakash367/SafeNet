@@ -113,7 +113,7 @@ export function DisasterAlerts() {
       issuedAt: now - index * 30 * 60 * 1000, // Stagger by 30 minutes
       expiresAt: now + 24 * 60 * 60 * 1000, // Expires in 24 hours
       source: "National Weather Service",
-      actionRequired: alert.severity === "severe" || alert.severity === "extreme",
+      actionRequired: alert.severity === "severe",
       affectedRadius: 50,
     }))
   }

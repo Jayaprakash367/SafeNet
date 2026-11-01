@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 interface DisasterAlert {
   id: string
   type: "weather" | "earthquake" | "flood" | "fire" | "storm" | "heat" | "other"

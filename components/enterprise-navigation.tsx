@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Menu, X, Shield, Home, AlertCircle, Map, Users, Settings, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export function EnterpriseNavigation() {
   const [isOpen, setIsOpen] = useState(false)
@@ -18,10 +19,16 @@ export function EnterpriseNavigation() {
     { href: '/settings', label: 'Settings', icon: Settings },
   ]
 
-  const handleLogout = () => {
-    localStorage.removeItem('user')
-    localStorage.removeItem('userData')
-    router.push('/login')
+  const handleLogout = async () => {
+    const { error } = await createClient().auth.signOut({ scope: 'local' })
+
+    if (error) {
+      console.error('[v0] Supabase sign-out failed:', error.code ?? error.name)
+      return
+    }
+
+    router.replace('/login')
+    router.refresh()
   }
 
   return (

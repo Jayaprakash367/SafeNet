@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabaseUser } from '@/lib/supabase/hooks'
 import { EmergencyProfile } from '@/components/emergency-profile'
 import { LocationTracker } from '@/components/location-tracker'
 import { DisasterAlerts } from '@/components/disaster-alerts'
@@ -36,15 +36,12 @@ const featureHighlights = [
 
 export default function SafeNetDashboard() {
   const router = useRouter()
+  const { user, isLoading, error: authError } = useSupabaseUser()
   const [isSOSActive, setIsSOSActive] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online')
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
-    let isMounted = true
-
     const updateConnectionStatus = () => {
       setConnectionStatus(navigator.onLine ? 'online' : 'offline')
     }
@@ -53,107 +50,52 @@ export default function SafeNetDashboard() {
     window.addEventListener('online', updateConnectionStatus)
     window.addEventListener('offline', updateConnectionStatus)
 
-    const loadSession = async () => {
-      try {
-        const { data, error } = await createClient().auth.getUser()
-
-        if (!isMounted) {
-          return
-        }
-
-        if (error || !data.user) {
-          router.replace('/login')
-          return
-        }
-
-        let cachedProfile: Record<string, unknown> = {}
-        const cachedProfileJson = localStorage.getItem('safenet-user')
-
-        if (cachedProfileJson) {
-          try {
-            const parsedProfile: unknown = JSON.parse(cachedProfileJson)
-            if (parsedProfile && typeof parsedProfile === 'object' && !Array.isArray(parsedProfile)) {
-              cachedProfile = parsedProfile as Record<string, unknown>
-            }
-          } catch {
-            localStorage.removeItem('safenet-user')
-          }
-        }
-
-        const metadataName = data.user.user_metadata?.name
-        const cachedName = cachedProfile.name
-        const name =
-          typeof metadataName === 'string' && metadataName.trim()
-            ? metadataName.trim()
-            : typeof cachedName === 'string'
-              ? cachedName
-              : data.user.email?.split('@')[0] ?? 'SafeNet user'
-
-        localStorage.setItem(
-          'safenet-user',
-          JSON.stringify({
-            ...cachedProfile,
-            id: data.user.id,
-            name,
-            email: data.user.email ?? '',
-            phone:
-              data.user.phone ??
-              (typeof cachedProfile.phone === 'string' ? cachedProfile.phone : ''),
-            emergencyContact:
-              typeof cachedProfile.emergencyContact === 'string'
-                ? cachedProfile.emergencyContact
-                : '',
-            bloodGroup:
-              typeof cachedProfile.bloodGroup === 'string' ? cachedProfile.bloodGroup : '',
-            medicalConditions:
-              typeof cachedProfile.medicalConditions === 'string'
-                ? cachedProfile.medicalConditions
-                : '',
-          }),
-        )
-
-        setIsAuthenticated(true)
-
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              if (isMounted) {
-                setUserLocation({
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude,
-                })
-              }
-            },
-            () => {
-              if (isMounted) {
-                setUserLocation(null)
-              }
-            },
-            { timeout: 5000, enableHighAccuracy: true, maximumAge: 300000 },
-          )
-        }
-      } catch (error) {
-        console.error('[v0] Supabase session lookup failed:', error)
-        if (isMounted) {
-          router.replace('/login?authError=service')
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadSession()
-
     return () => {
-      isMounted = false
       window.removeEventListener('online', updateConnectionStatus)
       window.removeEventListener('offline', updateConnectionStatus)
     }
-  }, [router])
+  }, [])
 
-  if (isLoading || !isAuthenticated) {
+  useEffect(() => {
+    if (authError) {
+      router.replace('/login?authError=service')
+      return
+    }
+
+    if (!isLoading && !user) {
+      router.replace('/login')
+    }
+  }, [authError, isLoading, router, user])
+
+  useEffect(() => {
+    if (!user || !navigator.geolocation) {
+      return
+    }
+
+    let isMounted = true
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (isMounted) {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          })
+        }
+      },
+      () => {
+        if (isMounted) {
+          setUserLocation(null)
+        }
+      },
+      { timeout: 5000, enableHighAccuracy: true, maximumAge: 300000 },
+    )
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id])
+
+  if (isLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-sm border-primary/10 shadow-lg shadow-primary/5">
@@ -204,7 +146,7 @@ export default function SafeNetDashboard() {
                 GPS
               </Badge>
             )}
-            <UserProfileHeader />
+            <UserProfileHeader user={user} />
           </div>
         </div>
       </header>
@@ -256,7 +198,7 @@ export default function SafeNetDashboard() {
         <WeatherAlerts />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <EmergencyProfile />
+          <EmergencyProfile userId={user.id} />
           <LocationTracker />
         </div>
 

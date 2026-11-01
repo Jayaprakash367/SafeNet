@@ -1,8 +1,11 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { User, MapPin, Phone, LogOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+import { User as UserIcon, MapPin, Phone, LogOut } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,130 +13,132 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+} from '@/components/ui/dropdown-menu'
+import { useEmergencyProfile } from '@/lib/supabase/hooks'
+import { createClient } from '@/lib/supabase/client'
 
-interface UserData {
-  name: string
-  email: string
-  phone: string
-  emergencyContact: string
-  bloodGroup: string
-  medicalConditions: string
+interface UserProfileHeaderProps {
+  user: User
 }
 
-export function UserProfileHeader() {
+export function UserProfileHeader({ user }: UserProfileHeaderProps) {
   const router = useRouter()
-  const [user, setUser] = useState<UserData | null>(null)
-  const [locationStatus, setLocationStatus] = useState<"granted" | "denied" | "prompt">("prompt")
+  const { profile } = useEmergencyProfile(user.id)
+  const [locationStatus, setLocationStatus] = useState<'granted' | 'denied' | 'prompt'>('prompt')
 
   useEffect(() => {
-    // Load user data from localStorage
-    const userData = localStorage.getItem("safenet-user")
-    if (userData) {
-      setUser(JSON.parse(userData))
+    let isMounted = true
+
+    if (!navigator.permissions?.query) {
+      return
     }
 
-    // Check location permission status
-    if (navigator.geolocation) {
-      navigator.permissions?.query({ name: "geolocation" }).then((result) => {
-        setLocationStatus(result.state as "granted" | "denied" | "prompt")
+    void navigator.permissions
+      .query({ name: 'geolocation' })
+      .then((result) => {
+        if (isMounted) {
+          setLocationStatus(result.state as 'granted' | 'denied' | 'prompt')
+        }
       })
+      .catch(() => undefined)
+
+    return () => {
+      isMounted = false
     }
   }, [])
 
+  const displayName =
+    profile.name ||
+    (typeof user.user_metadata?.name === 'string' ? user.user_metadata.name : '') ||
+    user.email?.split('@')[0] ||
+    'SafeNet user'
+
   const handleLogout = async () => {
-    try {
-      await createClient().auth.signOut({ scope: 'local' })
-    } catch (error) {
-      console.error('[v0] Supabase sign-out failed:', error)
-    } finally {
-      localStorage.removeItem('safenet-auth')
-      localStorage.removeItem('safenet-user')
-      router.replace('/login')
+    const { error } = await createClient().auth.signOut({ scope: 'local' })
+
+    if (error) {
+      console.error('[v0] Supabase sign-out failed:', error.code ?? error.name)
+      return
     }
+
+    router.replace('/login')
+    router.refresh()
   }
 
   const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('denied')
+      return
+    }
+
     navigator.geolocation.getCurrentPosition(
-      () => {
-        setLocationStatus("granted")
-        console.log("[v0] Location permission granted")
-      },
-      () => {
-        setLocationStatus("denied")
-        console.log("[v0] Location permission denied")
-      },
+      () => setLocationStatus('granted'),
+      () => setLocationStatus('denied'),
     )
   }
 
-  if (!user) return null
+  const getInitials = (name: string) =>
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || 'SN'
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-  }
-
-  const getLocationIcon = () => {
-    switch (locationStatus) {
-      case "granted":
-        return <MapPin className="h-4 w-4 text-green-600" />
-      case "denied":
-        return <MapPin className="h-4 w-4 text-destructive" />
-      default:
-        return <MapPin className="h-4 w-4 text-yellow-600" />
-    }
-  }
+  const locationIcon =
+    locationStatus === 'granted' ? (
+      <MapPin aria-hidden="true" className="size-4 text-green-600" />
+    ) : locationStatus === 'denied' ? (
+      <MapPin aria-hidden="true" className="size-4 text-destructive" />
+    ) : (
+      <MapPin aria-hidden="true" className="size-4 text-yellow-600" />
+    )
 
   return (
     <div className="shrink-0">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            aria-label={`Open profile menu for ${user.name}`}
+            aria-label={`Open profile menu for ${displayName}`}
             variant="ghost"
             className="relative size-10 rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted"
           >
             <Avatar className="size-9">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                {getInitials(user.name)}
+              <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent className="w-72 sm:w-80 mr-2 sm:mr-0" align="end" forceMount>
+        <DropdownMenuContent className="mr-2 w-72 sm:mr-0 sm:w-80" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-2">
               <div className="flex items-center space-x-2">
-                <User className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="font-medium text-sm sm:text-base truncate">{user.name}</span>
+                <UserIcon aria-hidden="true" className="size-3 sm:size-4" />
+                <span className="truncate text-sm font-medium sm:text-base">{displayName}</span>
               </div>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email ?? ''}</p>
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center space-x-1">
-                  {getLocationIcon()}
+                  {locationIcon}
                   <span className="text-xs">
-                    {locationStatus === "granted"
-                      ? "Location On"
-                      : locationStatus === "denied"
-                        ? "Location Off"
-                        : "Location Needed"}
+                    {locationStatus === 'granted'
+                      ? 'Location On'
+                      : locationStatus === 'denied'
+                        ? 'Location Off'
+                        : 'Location Needed'}
                   </span>
                 </div>
 
-                {locationStatus !== "granted" && (
+                {locationStatus !== 'granted' && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={requestLocation}
-                    className="h-5 sm:h-6 text-xs bg-transparent px-2"
+                    className="h-5 bg-transparent px-2 text-xs sm:h-6"
                   >
                     Enable
                   </Button>
@@ -144,41 +149,41 @@ export function UserProfileHeader() {
 
           <DropdownMenuSeparator />
 
-          <div className="p-2 space-y-2 max-h-32 sm:max-h-none overflow-y-auto">
+          <div className="max-h-32 space-y-2 overflow-y-auto p-2 sm:max-h-none">
             <div className="text-xs text-muted-foreground">Emergency Info:</div>
 
             {user.phone && (
               <div className="flex items-center space-x-2 text-xs">
-                <Phone className="h-3 w-3 flex-shrink-0" />
+                <Phone aria-hidden="true" className="size-3 shrink-0" />
                 <span className="truncate">{user.phone}</span>
               </div>
             )}
 
-            {user.bloodGroup && (
+            {profile.bloodGroup && (
               <div className="text-xs">
-                <span className="font-medium">Blood Group:</span> {user.bloodGroup}
+                <span className="font-medium">Blood Group:</span> {profile.bloodGroup}
               </div>
             )}
 
-            {user.emergencyContact && (
+            {profile.emergencyContact1 && (
               <div className="text-xs">
                 <span className="font-medium">Emergency Contact:</span>
-                <span className="block sm:inline sm:ml-1 truncate">{user.emergencyContact}</span>
+                <span className="block truncate sm:ml-1 sm:inline">{profile.emergencyContact1}</span>
               </div>
             )}
 
-            {user.medicalConditions && (
-              <div className="text-xs">
+            {profile.medicalConditions && (
+              <div className="break-words text-xs">
                 <span className="font-medium">Medical:</span>
-                <span className="block sm:inline sm:ml-1 break-words">{user.medicalConditions}</span>
+                <span className="block sm:ml-1 sm:inline">{profile.medicalConditions}</span>
               </div>
             )}
           </div>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={handleLogout} className="text-destructive text-sm">
-            <LogOut className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+          <DropdownMenuItem onClick={handleLogout} className="text-sm text-destructive">
+            <LogOut aria-hidden="true" className="mr-2 size-3 sm:size-4" />
             <span>Log out</span>
           </DropdownMenuItem>
         </DropdownMenuContent>

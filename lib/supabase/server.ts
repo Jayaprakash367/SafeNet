@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { supabaseCookieOptions } from './cookie-options'
 
 export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -14,9 +15,7 @@ export async function createClient() {
   const cookieStore = cookies()
 
   return createServerClient(supabaseUrl, supabaseKey, {
-    cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
-    },
+    cookieOptions: supabaseCookieOptions,
     cookies: {
       getAll() {
         return cookieStore.getAll()

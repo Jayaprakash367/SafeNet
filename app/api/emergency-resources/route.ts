@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 interface ResourceRequest {
   latitude: number
   longitude: number
@@ -137,7 +139,8 @@ async function findNearbyResources(params: ResourceRequest): Promise<EmergencyRe
     params.type === "all" ? allResources : allResources.filter((resource) => resource.type === params.type)
 
   // Filter by radius
-  filteredResources = filteredResources.filter((resource) => resource.distance <= params.radius)
+  const radius = params.radius ?? 10
+  filteredResources = filteredResources.filter((resource) => resource.distance <= radius)
 
   // Sort by distance
   filteredResources.sort((a, b) => a.distance - b.distance)
