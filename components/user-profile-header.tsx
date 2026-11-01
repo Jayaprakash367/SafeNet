@@ -77,19 +77,23 @@ export function UserProfileHeader() {
       case "granted":
         return <MapPin className="h-4 w-4 text-green-600" />
       case "denied":
-        return <MapPin className="h-4 w-4 text-red-600" />
+        return <MapPin className="h-4 w-4 text-destructive" />
       default:
         return <MapPin className="h-4 w-4 text-yellow-600" />
     }
   }
 
   return (
-    <div className="fixed top-2 sm:top-4 right-2 sm:right-4 z-50">
+    <div className="shrink-0">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white shadow-lg border">
-            <Avatar className="h-7 w-7 sm:h-9 sm:w-9">
-              <AvatarFallback className="bg-red-100 text-red-700 font-semibold text-xs sm:text-sm">
+          <Button
+            aria-label={`Open profile menu for ${user.name}`}
+            variant="ghost"
+            className="relative size-10 rounded-full border border-border bg-card shadow-sm transition-colors hover:bg-muted"
+          >
+            <Avatar className="size-9">
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
                 {getInitials(user.name)}
               </AvatarFallback>
             </Avatar>
@@ -166,7 +170,7 @@ export function UserProfileHeader() {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={handleLogout} className="text-red-600 text-sm">
+          <DropdownMenuItem onClick={handleLogout} className="text-destructive text-sm">
             <LogOut className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             <span>Log out</span>
           </DropdownMenuItem>

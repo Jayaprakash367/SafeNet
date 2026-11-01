@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { AlertCircle, Eye, EyeOff, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, Loader2, CheckCircle2, AlertTriangle, Shield } from 'lucide-react'
 
 type AuthMode = 'login' | 'signup'
 
@@ -143,24 +143,28 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center px-4 py-12">
-      {/* Subtle background animation */}
-      <div className="absolute inset-0 overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-red-50 via-background to-orange-50 px-4 py-12 dark:from-background dark:via-background dark:to-background">
+      <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-50"></div>
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-secondary/10 rounded-full blur-3xl opacity-50"></div>
       </div>
 
       {/* Auth Card */}
-      <Card className="w-full max-w-md relative z-10 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 shadow-2xl">
+      <Card className="relative z-10 w-full max-w-md border border-border/80 bg-card/95 shadow-2xl shadow-primary/10 backdrop-blur-xl">
         <div className="p-8">
           {/* Header */}
-          <div className="text-center mb-8 animate-fade-in">
-            <h1 className="text-3xl font-bold text-white mb-2">SafeNet</h1>
-            <p className="text-slate-400 text-sm">Emergency Response Platform</p>
+          <div className="mb-8 text-center animate-fade-in">
+            <div className="mb-4 flex justify-center">
+              <span className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-md">
+                <Shield aria-hidden="true" className="size-6" />
+              </span>
+            </div>
+            <h1 className="mb-2 text-3xl font-bold text-primary">SafeNet</h1>
+            <p className="text-sm text-muted-foreground">Emergency Response Platform</p>
           </div>
 
           {/* Mode Tabs */}
-          <div className="flex gap-2 mb-8 bg-slate-900/50 p-1 rounded-lg">
+          <div className="flex gap-2 mb-8 bg-muted/70 p-1 rounded-lg">
             <button
               onClick={() => {
                 setMode('login')
@@ -169,8 +173,8 @@ export default function AuthPage() {
               }}
               className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 ${
                 mode === 'login'
-                  ? 'bg-primary text-white'
-                  : 'text-slate-400 hover:text-slate-300'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Sign In
@@ -183,8 +187,8 @@ export default function AuthPage() {
               }}
               className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 ${
                 mode === 'signup'
-                  ? 'bg-primary text-white'
-                  : 'text-slate-400 hover:text-slate-300'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Create Account
@@ -193,17 +197,17 @@ export default function AuthPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg flex gap-3 items-start animate-slide-in-left">
-              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex gap-3 items-start animate-slide-in-left">
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <p className="text-destructive text-sm">{error}</p>
             </div>
           )}
 
           {/* Success Message */}
           {success && (
-            <div className="mb-6 p-4 bg-green-900/20 border border-green-500/50 rounded-lg flex gap-3 items-start animate-slide-in-left">
-              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-              <p className="text-green-400 text-sm">{success}</p>
+            <div className="mb-6 p-4 bg-green-600/10 border border-green-600/30 dark:bg-green-400/10 dark:border-green-400/30 rounded-lg flex gap-3 items-start animate-slide-in-left">
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-300 flex-shrink-0 mt-0.5" />
+              <p className="text-green-700 dark:text-green-300 text-sm">{success}</p>
             </div>
           )}
 
@@ -211,8 +215,9 @@ export default function AuthPage() {
           {mode === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4 animate-fade-in">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Email Address</label>
+                <label htmlFor="login-email" className="text-sm font-medium text-foreground">Email Address</label>
                 <Input
+                  id="login-email"
                   type="email"
                   placeholder="your@email.com"
                   value={loginEmail}
@@ -228,12 +233,12 @@ export default function AuthPage() {
                   }}
                   onBlur={() => setLoginTouched({ ...loginTouched, email: true })}
                   disabled={isLoading}
-                  className={`bg-slate-900/50 border ${
-                    loginErrors.email ? 'border-red-500' : 'border-slate-700'
-                  } text-white placeholder-slate-500 focus:border-primary transition-all`}
+                  className={`bg-background/80 border ${
+                    loginErrors.email ? 'border-destructive' : 'border-border'
+                  } text-foreground placeholder:text-muted-foreground focus:border-primary transition-all`}
                 />
                 {loginTouched.email && loginErrors.email && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     {loginErrors.email}
                   </p>
@@ -241,9 +246,10 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Password</label>
+                <label htmlFor="login-password" className="text-sm font-medium text-foreground">Password</label>
                 <div className="relative">
                   <Input
+                    id="login-password"
                     type={showLoginPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={loginPassword}
@@ -259,21 +265,21 @@ export default function AuthPage() {
                     }}
                     onBlur={() => setLoginTouched({ ...loginTouched, password: true })}
                     disabled={isLoading}
-                    className={`bg-slate-900/50 border ${
-                      loginErrors.password ? 'border-red-500' : 'border-slate-700'
-                    } text-white placeholder-slate-500 focus:border-primary transition-all pr-10`}
+                    className={`bg-background/80 border ${
+                      loginErrors.password ? 'border-destructive' : 'border-border'
+                    } text-foreground placeholder:text-muted-foreground focus:border-primary transition-all pr-10`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
                     disabled={isLoading}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {loginTouched.password && loginErrors.password && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     {loginErrors.password}
                   </p>
@@ -283,7 +289,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 mt-6 transition-all duration-300 active:scale-95"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 mt-6 transition-all duration-300 active:scale-95"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -301,20 +307,21 @@ export default function AuthPage() {
           {mode === 'signup' && (
             <form onSubmit={handleSignup} className="space-y-4 animate-fade-in">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Full Name</label>
+                <label htmlFor="signup-name" className="text-sm font-medium text-foreground">Full Name</label>
                 <Input
+                  id="signup-name"
                   type="text"
                   placeholder="John Doe"
                   value={signupName}
                   onChange={(e) => setSignupName(e.target.value)}
                   onBlur={() => setSignupTouched({ ...signupTouched, name: true })}
                   disabled={isLoading}
-                  className={`bg-slate-900/50 border ${
-                    signupErrors.name ? 'border-red-500' : 'border-slate-700'
-                  } text-white placeholder-slate-500 focus:border-primary transition-all`}
+                  className={`bg-background/80 border ${
+                    signupErrors.name ? 'border-destructive' : 'border-border'
+                  } text-foreground placeholder:text-muted-foreground focus:border-primary transition-all`}
                 />
                 {signupTouched.name && signupErrors.name && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     {signupErrors.name}
                   </p>
@@ -322,20 +329,21 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Email Address</label>
+                <label htmlFor="signup-email" className="text-sm font-medium text-foreground">Email Address</label>
                 <Input
+                  id="signup-email"
                   type="email"
                   placeholder="your@email.com"
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
                   onBlur={() => setSignupTouched({ ...signupTouched, email: true })}
                   disabled={isLoading}
-                  className={`bg-slate-900/50 border ${
-                    signupErrors.email ? 'border-red-500' : 'border-slate-700'
-                  } text-white placeholder-slate-500 focus:border-primary transition-all`}
+                  className={`bg-background/80 border ${
+                    signupErrors.email ? 'border-destructive' : 'border-border'
+                  } text-foreground placeholder:text-muted-foreground focus:border-primary transition-all`}
                 />
                 {signupTouched.email && signupErrors.email && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     {signupErrors.email}
                   </p>
@@ -343,30 +351,31 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Password</label>
+                <label htmlFor="signup-password" className="text-sm font-medium text-foreground">Password</label>
                 <div className="relative">
                   <Input
+                    id="signup-password"
                     type={showSignupPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     onBlur={() => setSignupTouched({ ...signupTouched, password: true })}
                     disabled={isLoading}
-                    className={`bg-slate-900/50 border ${
-                      signupErrors.password ? 'border-red-500' : 'border-slate-700'
-                    } text-white placeholder-slate-500 focus:border-primary transition-all pr-10`}
+                    className={`bg-background/80 border ${
+                      signupErrors.password ? 'border-destructive' : 'border-border'
+                    } text-foreground placeholder:text-muted-foreground focus:border-primary transition-all pr-10`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowSignupPassword(!showSignupPassword)}
                     disabled={isLoading}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {signupTouched.password && signupErrors.password && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     {signupErrors.password}
                   </p>
@@ -374,9 +383,10 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Confirm Password</label>
+                <label htmlFor="signup-confirm-password" className="text-sm font-medium text-foreground">Confirm Password</label>
                 <div className="relative">
                   <Input
+                    id="signup-confirm-password"
                     type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={confirmPassword}
@@ -403,25 +413,25 @@ export default function AuthPage() {
                       }
                     }}
                     disabled={isLoading}
-                    className={`bg-slate-900/50 border ${
+                    className={`bg-background/80 border ${
                       signupErrors.confirmPassword
-                        ? 'border-red-500'
+                        ? 'border-destructive'
                         : confirmPassword && confirmPassword === signupPassword && signupTouched.confirmPassword
-                        ? 'border-green-500'
-                        : 'border-slate-700'
-                    } text-white placeholder-slate-500 focus:border-primary transition-all pr-10`}
+                        ? 'border-green-600'
+                        : 'border-border'
+                    } text-foreground placeholder:text-muted-foreground focus:border-primary transition-all pr-10`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     disabled={isLoading}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {signupTouched.confirmPassword && signupErrors.confirmPassword && (
-                  <p className="text-xs text-red-400 flex items-center gap-1">
+                  <p className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     {signupErrors.confirmPassword}
                   </p>
@@ -431,7 +441,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 mt-6 transition-all duration-300 active:scale-95"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 mt-6 transition-all duration-300 active:scale-95"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -446,7 +456,7 @@ export default function AuthPage() {
           )}
 
           {/* Footer */}
-          <p className="text-center text-xs text-slate-500 mt-6">
+          <p className="text-center text-xs text-muted-foreground mt-6">
             Your data is secured with enterprise-grade encryption
           </p>
         </div>

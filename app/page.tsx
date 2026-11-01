@@ -2,24 +2,46 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { EnterpriseNavigation } from '@/components/enterprise-navigation'
-import { EnterpriseDashboard } from '@/components/enterprise-dashboard'
-import { SOSButton } from '@/components/sos-button'
+import { EmergencyProfile } from '@/components/emergency-profile'
+import { LocationTracker } from '@/components/location-tracker'
+import { DisasterAlerts } from '@/components/disaster-alerts'
+import { QuickActions } from '@/components/quick-actions'
+import { TestSMSButton } from '@/components/test-sms-button'
+import WeatherAlerts from '@/components/weather-alerts'
 import { UserProfileHeader } from '@/components/user-profile-header'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SOSButton } from '@/components/sos-button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { AlertCircle, MapPin, Smartphone } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertTriangle, MapPin, Phone, Shield, Users, Zap } from 'lucide-react'
+
+const featureHighlights = [
+  {
+    icon: Phone,
+    title: 'AI Voice Verification',
+    description: 'Automatic callback and voice recording for urgent emergencies.',
+  },
+  {
+    icon: MapPin,
+    title: 'Smart Location Sharing',
+    description: 'Share GPS coordinates with an SMS fallback when connectivity is limited.',
+  },
+  {
+    icon: Users,
+    title: 'Priority Response',
+    description: 'Prioritize alerts using your emergency profile and incident details.',
+  },
+]
 
 export default function SafeNetDashboard() {
   const router = useRouter()
+  const [isSOSActive, setIsSOSActive] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online')
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
-    // Check authentication
     const authStatus = localStorage.getItem('safenet-auth')
     const userData = localStorage.getItem('safenet-user')
 
@@ -30,15 +52,14 @@ export default function SafeNetDashboard() {
       return
     }
 
-    // Monitor connection status
     const updateConnectionStatus = () => {
       setConnectionStatus(navigator.onLine ? 'online' : 'offline')
     }
 
+    updateConnectionStatus()
     window.addEventListener('online', updateConnectionStatus)
     window.addEventListener('offline', updateConnectionStatus)
 
-    // Request location permission
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -48,9 +69,9 @@ export default function SafeNetDashboard() {
           })
         },
         () => {
-          console.log('[v0] Location access denied - app will work without location')
+          setUserLocation(null)
         },
-        { timeout: 5000, enableHighAccuracy: true }
+        { timeout: 5000, enableHighAccuracy: true, maximumAge: 300000 },
       )
     }
 
@@ -64,116 +85,144 @@ export default function SafeNetDashboard() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-in fade-in zoom-in-95 duration-300">
-          <Card className="shadow-md">
-            <CardContent className="p-8 text-center">
-              <div className="animate-pulse text-primary text-4xl mb-4">SafeNet</div>
-              <p className="text-muted-foreground">Loading emergency response system...</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-sm border-primary/10 shadow-lg shadow-primary/5">
+          <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
+            <Shield aria-hidden="true" className="size-8 animate-pulse text-primary" />
+            <div>
+              <p className="font-semibold text-foreground">Loading SafeNet...</p>
+              <p className="mt-1 text-sm text-muted-foreground">Preparing your emergency dashboard.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <EnterpriseNavigation />
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="mb-8 animate-in slide-in-from-top duration-500">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-2">
-                Emergency Response Dashboard
-              </h1>
-              <p className="text-muted-foreground">
-                Real-time disaster management and emergency coordination system
-              </p>
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-card/90 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-md">
+              <Shield aria-hidden="true" className="size-5 text-primary-foreground" />
             </div>
-            <UserProfileHeader />
+            <div className="min-w-0">
+              <h1 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-lg font-bold text-transparent">SafeNet</h1>
+              <p className="truncate text-xs font-medium text-muted-foreground">AI Emergency Response</p>
+            </div>
           </div>
 
-          {/* Status Bar */}
-          <div className="flex flex-wrap gap-3 mt-6">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <Badge
-              className={`transition-all duration-300 ease-out ${
+              variant="outline"
+              className={`h-8 gap-2 rounded-full px-3 text-xs font-semibold ${
                 connectionStatus === 'online'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-destructive text-destructive-foreground'
+                  ? 'border-green-600/20 bg-green-600/10 text-green-700 dark:text-green-300'
+                  : 'border-destructive/25 bg-destructive/10 text-destructive'
               }`}
             >
-              {connectionStatus === 'online' ? '🟢 Online' : '🔴 Offline'}
+              <span
+                aria-hidden="true"
+                className={`size-2 rounded-full ${connectionStatus === 'online' ? 'bg-green-600' : 'bg-destructive'}`}
+              />
+              {connectionStatus === 'online' ? 'Online' : 'Offline'}
             </Badge>
             {userLocation && (
-              <Badge className="bg-secondary text-secondary-foreground flex items-center gap-2">
-                <MapPin className="w-3 h-3" />
-                GPS Active
+              <Badge variant="outline" className="hidden h-8 items-center gap-1.5 rounded-full border-primary/20 bg-primary/5 px-3 text-xs font-medium text-primary sm:inline-flex">
+                <MapPin aria-hidden="true" className="size-3" />
+                GPS
               </Badge>
             )}
-            <Badge className="bg-accent text-accent-foreground">System Operational</Badge>
+            <UserProfileHeader />
           </div>
         </div>
+      </header>
 
-        {/* SOS Emergency Section */}
-        <Card className="mb-8 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 shadow-md animate-in slide-in-from-bottom duration-500">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <AlertCircle className="w-6 h-6" />
+      <main className="mx-auto flex max-w-6xl flex-col gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8">
+        {isSOSActive && (
+          <Alert className="border-destructive/30 bg-destructive/10">
+            <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
+            <AlertDescription className="font-medium text-destructive">
+              SOS alert is active. Keep your phone nearby and follow the safety instructions.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Card className="overflow-hidden border-primary/10 shadow-xl shadow-primary/5">
+          <CardHeader className="bg-gradient-to-b from-primary/5 to-transparent pb-4 text-center sm:pb-6">
+            <CardTitle className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-balance text-2xl font-bold text-transparent sm:text-3xl">
               Emergency SOS System
             </CardTitle>
+            <CardDescription className="mx-auto max-w-2xl text-pretty text-base sm:text-lg">
+              Start an SOS alert with location sharing and AI-assisted verification.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">One-Tap Emergency Alert</h3>
-                <p className="text-muted-foreground mb-4">
-                  Instantly notify rescue teams and emergency services with your GPS location
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <span className="text-primary">✓</span> Automatic location sharing
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-primary">✓</span> SMS backup notification
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-primary">✓</span> Offline queue support
-                  </li>
-                </ul>
-              </div>
-              <div className="flex flex-col items-center gap-4">
-                <SOSButton
-                  isActive={false}
-                  onActivate={() => {
-                    console.log('[v0] SOS activated')
-                  }}
-                  onDeactivate={() => {
-                    console.log('[v0] SOS deactivated')
-                  }}
-                  userLocation={userLocation}
-                  connectionStatus={connectionStatus}
-                />
-                <Button variant="outline" size="sm" className="transition-all duration-300 ease-out">
-                  <Smartphone className="w-4 h-4 mr-2" />
-                  View on Mobile
-                </Button>
-              </div>
+          <CardContent className="flex justify-center pb-6 sm:pb-8">
+            <div className={isSOSActive ? 'pulse-sos rounded-full' : 'relative'}>
+              <SOSButton
+                isActive={isSOSActive}
+                onActivate={() => setIsSOSActive(true)}
+                onDeactivate={() => setIsSOSActive(false)}
+                userLocation={userLocation}
+                connectionStatus={connectionStatus}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Dashboard */}
-        <EnterpriseDashboard />
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="text-center">
+            <CardTitle className="text-lg font-bold">SMS System Test</CardTitle>
+            <CardDescription>Check that emergency texts can reach your phone.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <TestSMSButton />
+          </CardContent>
+        </Card>
 
-        {/* Footer */}
-        <footer className="mt-12 pt-8 border-t border-border text-center text-muted-foreground text-sm animate-in slide-in-from-bottom duration-500">
-          <p>SafeNet Emergency Response System • Built with enterprise-grade reliability</p>
-          <p className="mt-2">For emergencies, press the SOS button or call local emergency services</p>
+        <QuickActions />
+
+        <WeatherAlerts />
+
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <EmergencyProfile />
+          <LocationTracker />
+        </div>
+
+        <DisasterAlerts />
+
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Zap aria-hidden="true" className="size-5 text-primary" />
+              SafeNet Features
+            </CardTitle>
+            <CardDescription>Emergency response tools designed to work together.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {featureHighlights.map((feature, index) => {
+                const Icon = feature.icon
+
+                return (
+                  <div key={feature.title} className={`flex items-start gap-3 ${index === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon aria-hidden="true" className="size-4 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold sm:text-base">{feature.title}</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">{feature.description}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <footer className="border-t border-border/70 pt-5 text-center text-xs text-muted-foreground">
+          <p>For immediate danger, contact your local emergency services.</p>
         </footer>
       </main>
     </div>

@@ -6,13 +6,13 @@ import "./globals.css"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 
 export const metadata: Metadata = {
-  title: "SafeNet - Enterprise Emergency Response System",
-  description: "Professional disaster management and emergency response coordination platform trusted by government agencies and emergency services",
+  title: "SafeNet — AI Emergency Response",
+  description: "A fast, accessible emergency response dashboard for SOS alerts, location sharing, and disaster updates.",
   keywords: "disaster management, emergency response, SOS alert, GPS tracking, emergency coordination, crisis management",
   generator: "SafeNet v1.0",
   manifest: "/manifest.json",
-  themeColor: "#c41e3a",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  themeColor: "#e63946",
+  viewport: "width=device-width, initial-scale=1",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

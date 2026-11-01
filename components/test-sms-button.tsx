@@ -39,25 +39,30 @@ export function TestSMSButton() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full min-w-0 max-w-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
           Test SMS Delivery
         </CardTitle>
-        <CardDescription>Send a test message to verify SMS delivery to your phone</CardDescription>
+        <CardDescription>Send a test message to +91 8825 516088.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Button onClick={sendTestSMS} disabled={isLoading} className="w-full" size="lg">
+      <CardContent className="flex flex-col gap-4">
+        <Button
+          onClick={sendTestSMS}
+          disabled={isLoading}
+          className="w-full whitespace-normal"
+          size="lg"
+        >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="animate-spin" data-icon="inline-start" />
               Sending Test SMS...
             </>
           ) : (
             <>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Send Test SMS to +918825516088
+              <MessageSquare data-icon="inline-start" />
+              Send Test SMS
             </>
           )}
         </Button>
