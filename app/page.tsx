@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSupabaseUser } from '@/lib/supabase/hooks'
+import { isEmergencyProfileComplete, useEmergencyProfile, useGuestUser } from '@/lib/supabase/hooks'
 import { EmergencyProfile } from '@/components/emergency-profile'
 import { LocationTracker } from '@/components/location-tracker'
 import { DisasterAlerts } from '@/components/disaster-alerts'
@@ -13,6 +13,7 @@ import { UserProfileHeader } from '@/components/user-profile-header'
 import { SOSButton } from '@/components/sos-button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, MapPin, Phone, Shield, Users, Zap } from 'lucide-react'
 
@@ -36,7 +37,13 @@ const featureHighlights = [
 
 export default function SafeNetDashboard() {
   const router = useRouter()
-  const { user, isLoading, error: authError } = useSupabaseUser()
+  const { user, isLoading, error: guestError, refresh: refreshGuest } = useGuestUser()
+  const {
+    profile,
+    error: profileError,
+    isLoading: isProfileLoading,
+    refresh: refreshProfile,
+  } = useEmergencyProfile(user?.id ?? '')
   const [isSOSActive, setIsSOSActive] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online')
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -57,15 +64,10 @@ export default function SafeNetDashboard() {
   }, [])
 
   useEffect(() => {
-    if (authError) {
-      router.replace('/login?authError=service')
-      return
+    if (user && !isProfileLoading && !profileError && !isEmergencyProfileComplete(profile)) {
+      router.replace('/profile')
     }
-
-    if (!isLoading && !user) {
-      router.replace('/login')
-    }
-  }, [authError, isLoading, router, user])
+  }, [isProfileLoading, profile, profileError, router, user])
 
   useEffect(() => {
     if (!user || !navigator.geolocation) {
@@ -95,15 +97,35 @@ export default function SafeNetDashboard() {
     }
   }, [user?.id])
 
-  if (isLoading || !user) {
+  if (guestError || (user && profileError)) {
+    const retry = guestError ? refreshGuest : refreshProfile
+
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+        <Card className="w-full max-w-lg border-destructive/20 shadow-lg">
+          <CardHeader>
+            <CardTitle>SafeNet could not prepare your profile</CardTitle>
+            <CardDescription>
+              Your private profile session is unavailable. Try again to continue; no password or visible login is needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => void retry()}>Try again</Button>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
+  if (isLoading || !user || isProfileLoading || !isEmergencyProfileComplete(profile)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-sm border-primary/10 shadow-lg shadow-primary/5">
           <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
             <Shield aria-hidden="true" className="size-8 animate-pulse text-primary" />
             <div>
-              <p className="font-semibold text-foreground">Loading SafeNet...</p>
-              <p className="mt-1 text-sm text-muted-foreground">Preparing your emergency dashboard.</p>
+              <p className="font-semibold text-foreground">Preparing SafeNet...</p>
+              <p className="mt-1 text-sm text-muted-foreground">Opening your profile or emergency dashboard.</p>
             </div>
           </CardContent>
         </Card>

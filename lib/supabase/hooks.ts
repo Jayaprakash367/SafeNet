@@ -29,6 +29,15 @@ export const EMPTY_EMERGENCY_PROFILE: EmergencyProfileData = {
   medications: '',
 }
 
+export function isEmergencyProfileComplete(profile: EmergencyProfileData) {
+  return Boolean(
+    profile.name.trim() &&
+      profile.age.trim() &&
+      profile.bloodGroup &&
+      profile.emergencyContact1.trim(),
+  )
+}
+
 interface ProfileRow {
   full_name: string | null
   age: number | null
@@ -46,30 +55,51 @@ interface EmergencyProfileSnapshot {
   profile: EmergencyProfileData
 }
 
-const AUTH_USER_KEY = 'safenet/auth-user'
+const GUEST_USER_KEY = 'safenet/guest-user'
 const PROFILE_CACHE_KEY = 'safenet/emergency-profile'
 const PROFILE_COLUMNS =
   'full_name, age, blood_group, medical_conditions, emergency_contact1, emergency_contact2, address, allergies, medications'
 
-async function loadAuthenticatedUser(): Promise<User | null> {
-  const { data, error } = await createClient().auth.getUser()
+async function loadGuestUser(): Promise<User> {
+  const supabase = createClient()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
 
-  if (error) {
-    if (error.name === 'AuthSessionMissingError' || error.status === 401 || error.status === 400) {
-      return null
-    }
+  if (user) {
+    return user
+  }
 
+  const missingSession =
+    !error ||
+    error.name === 'AuthSessionMissingError' ||
+    error.status === 400 ||
+    error.status === 401 ||
+    error.status === 403
+
+  if (error && !missingSession) {
     throw error
+  }
+
+  const { data, error: guestError } = await supabase.auth.signInAnonymously()
+
+  if (guestError) {
+    throw guestError
+  }
+
+  if (!data.user) {
+    throw new Error('A private profile session could not be created.')
   }
 
   return data.user
 }
 
-export function useSupabaseUser() {
+export function useGuestUser() {
   const supabase = typeof window === 'undefined' ? null : createClient()
-  const { data, error, isLoading, mutate } = useSWR<User | null>(
-    supabase ? AUTH_USER_KEY : null,
-    loadAuthenticatedUser,
+  const { data, error, isLoading, mutate } = useSWR<User>(
+    supabase ? GUEST_USER_KEY : null,
+    loadGuestUser,
     {
       revalidateOnFocus: true,
       shouldRetryOnError: false,
@@ -99,11 +129,11 @@ async function loadEmergencyProfile(
   const supabase = createClient()
   const {
     data: { user },
-    error: authError,
+    error: sessionError,
   } = await supabase.auth.getUser()
 
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Your session could not be verified. Sign in again to load your profile.')
+  if (sessionError || !user || user.id !== userId) {
+    throw new Error('Your private profile session could not be verified. Start again to load your profile.')
   }
 
   const { data, error } = await supabase
@@ -146,7 +176,7 @@ export function useEmergencyProfile(userId: string) {
 
   const saveProfile = async (profile: EmergencyProfileData) => {
     if (!userId) {
-      throw new Error('Sign in to save your emergency profile.')
+      throw new Error('Start a private profile session before saving your details.')
     }
 
     const age = profile.age.trim() === '' ? null : Number(profile.age)
@@ -175,11 +205,11 @@ export function useEmergencyProfile(userId: string) {
     const supabase = createClient()
     const {
       data: { user },
-      error: authError,
+      error: sessionError,
     } = await supabase.auth.getUser()
 
-    if (authError || !user || user.id !== userId) {
-      throw new Error('Your session expired. Sign in again before saving your profile.')
+    if (sessionError || !user || user.id !== userId) {
+      throw new Error('Your private profile session expired. Refresh the page and try again.')
     }
 
     const { error: saveError } = await supabase.from('profiles').upsert(
@@ -213,5 +243,6 @@ export function useEmergencyProfile(userId: string) {
     error,
     isLoading,
     saveProfile,
+    refresh: () => mutate(),
   }
 }

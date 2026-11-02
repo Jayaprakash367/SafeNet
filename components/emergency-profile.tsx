@@ -99,7 +99,7 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
             </Button>
           </div>
         </div>
-        <CardDescription>Critical information saved to your account and shared with authorized SOS alerts.</CardDescription>
+        <CardDescription>Critical information stays in your private profile and is included with your SOS alerts.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading && <p className="text-sm text-muted-foreground" role="status">Loading your saved profile...</p>}
@@ -122,7 +122,7 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
           <Alert className="border-primary bg-primary/10" role="status">
             <CheckCircle aria-hidden="true" className="size-4 text-primary" />
             <AlertDescription className="text-primary">
-              Profile saved successfully. This information is available to your account during SOS alerts.
+              Profile saved successfully. This information is ready for your SOS alerts.
             </AlertDescription>
           </Alert>
         )}

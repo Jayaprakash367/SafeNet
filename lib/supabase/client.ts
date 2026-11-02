@@ -14,7 +14,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase authentication is not configured')
+    throw new Error('Supabase profile storage is not configured')
   }
 
   browserClient = createBrowserClient(supabaseUrl, supabaseKey, {

@@ -14,14 +14,14 @@ export async function POST() {
     if (authError && authError.name !== 'AuthSessionMissingError') {
       console.error('[v0] SMS test authentication failed:', authError.code ?? authError.name)
       return NextResponse.json(
-        { error: 'Authentication is temporarily unavailable.' },
+        { error: 'Your private profile session is temporarily unavailable.' },
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Sign in before testing SMS delivery.' },
+        { error: 'Create a profile before testing SMS delivery.' },
         { status: 401, headers: { 'Cache-Control': 'no-store' } },
       )
     }
@@ -66,7 +66,7 @@ export async function POST() {
     const name =
       typeof profile?.full_name === 'string' && profile.full_name.trim()
         ? profile.full_name.trim().slice(0, 120)
-        : 'your SafeNet account'
+        : 'your SafeNet profile'
     const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
     const authorization = `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`
     const response = await fetch(endpoint, {
@@ -78,7 +78,7 @@ export async function POST() {
       body: new URLSearchParams({
         To: phoneNumber,
         From: fromNumber,
-        Body: `SafeNet SMS delivery test for ${name}. You requested this test from your account.`,
+        Body: `SafeNet SMS delivery test for ${name}. You requested this test from your profile.`,
       }),
       signal: AbortSignal.timeout(10_000),
     })

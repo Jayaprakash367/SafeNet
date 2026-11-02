@@ -11,18 +11,12 @@ function addSecurityHeaders(response: NextResponse) {
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
-  const pathname = request.nextUrl.pathname
-
-  if (pathname === '/login' || pathname === '/auth/callback') {
-    return addSecurityHeaders(response)
-  }
-
   const hasSupabaseSessionCookie = request.cookies
     .getAll()
     .some(({ name }) => name.startsWith('sb-') && name.includes('-auth-token'))
 
   if (!hasSupabaseSessionCookie) {
-    return addSecurityHeaders(NextResponse.redirect(new URL('/login', request.url)))
+    return addSecurityHeaders(response)
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -31,9 +25,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    return addSecurityHeaders(
-      NextResponse.redirect(new URL('/login?authError=service', request.url)),
-    )
+    return addSecurityHeaders(response)
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
@@ -56,39 +48,23 @@ export async function updateSession(request: NextRequest) {
   })
 
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
+    const { error } = await supabase.auth.getUser()
+    const isMissingSession =
+      error?.name === 'AuthSessionMissingError' ||
+      error?.status === 400 ||
+      error?.status === 401 ||
+      error?.status === 403
 
-    if (error) {
-      const isInvalidSession =
-        error.name === 'AuthSessionMissingError' ||
-        error.status === 400 ||
-        error.status === 401 ||
-        error.status === 403
-
-      if (!isInvalidSession) {
-        console.error('[v0] Supabase session validation failed:', {
-          name: error.name,
-          status: error.status,
-          code: error.code,
-        })
-        return addSecurityHeaders(
-          NextResponse.redirect(new URL('/login?authError=service', request.url)),
-        )
-      }
+    if (error && !isMissingSession) {
+      console.error('[v0] Supabase guest session refresh failed:', {
+        name: error.name,
+        status: error.status,
+        code: error.code,
+      })
     }
-
-    if (!user) {
-      return addSecurityHeaders(NextResponse.redirect(new URL('/login', request.url)))
-    }
-
-    return addSecurityHeaders(response)
   } catch (error) {
-    console.error('[v0] Supabase session validation failed:', error)
-    return addSecurityHeaders(
-      NextResponse.redirect(new URL('/login?authError=service', request.url)),
-    )
+    console.error('[v0] Supabase guest session refresh failed:', error instanceof Error ? error.name : 'UnknownError')
   }
+
+  return addSecurityHeaders(response)
 }

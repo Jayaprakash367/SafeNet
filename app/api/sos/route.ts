@@ -136,12 +136,12 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError && authError.name !== 'AuthSessionMissingError') {
-      console.error('[v0] SOS authentication check failed:', authError.code ?? authError.name)
-      return NextResponse.json({ error: 'Authentication is temporarily unavailable.' }, { status: 503 })
+      console.error('[v0] SOS guest session validation failed:', authError.code ?? authError.name)
+      return NextResponse.json({ error: 'Your private profile session is temporarily unavailable.' }, { status: 503 })
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'Sign in before creating an SOS alert.' }, { status: 401 })
+      return NextResponse.json({ error: 'Create a profile before sending an SOS alert.' }, { status: 401 })
     }
 
     const { data: profileRow, error: profileError } = await supabase
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         id: alert.id,
         status: 'received',
         notificationsSent,
-        message: 'Your SOS alert was saved to your account.',
+        message: 'Your SOS alert was saved with your profile.',
       },
       { status: 201, headers: { 'Cache-Control': 'no-store' } },
     )

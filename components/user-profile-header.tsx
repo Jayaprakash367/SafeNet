@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import { User as UserIcon, MapPin, Phone, LogOut } from 'lucide-react'
+import { User as UserIcon, MapPin, Phone } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useEmergencyProfile } from '@/lib/supabase/hooks'
-import { createClient } from '@/lib/supabase/client'
 
 interface UserProfileHeaderProps {
   user: User
@@ -53,16 +52,8 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
     user.email?.split('@')[0] ||
     'SafeNet user'
 
-  const handleLogout = async () => {
-    const { error } = await createClient().auth.signOut({ scope: 'local' })
-
-    if (error) {
-      console.error('[v0] Supabase sign-out failed:', error.code ?? error.name)
-      return
-    }
-
-    router.replace('/login')
-    router.refresh()
+  const handleEditProfile = () => {
+    router.push('/profile')
   }
 
   const requestLocation = () => {
@@ -119,7 +110,7 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
                 <UserIcon aria-hidden="true" className="size-3 sm:size-4" />
                 <span className="truncate text-sm font-medium sm:text-base">{displayName}</span>
               </div>
-              <p className="truncate text-xs text-muted-foreground">{user.email ?? ''}</p>
+              <p className="truncate text-xs text-muted-foreground">Private guest profile · this browser</p>
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center space-x-1">
@@ -182,9 +173,9 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={handleLogout} className="text-sm text-destructive">
-            <LogOut aria-hidden="true" className="mr-2 size-3 sm:size-4" />
-            <span>Log out</span>
+          <DropdownMenuItem onClick={handleEditProfile} className="text-sm">
+            <UserIcon aria-hidden="true" className="mr-2 size-3 sm:size-4" />
+            <span>Edit profile</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
