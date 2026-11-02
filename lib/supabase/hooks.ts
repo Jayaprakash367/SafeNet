@@ -38,6 +38,15 @@ export function isEmergencyProfileComplete(profile: EmergencyProfileData) {
   )
 }
 
+export function isAnonymousSignInDisabled(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'anonymous_provider_disabled',
+  )
+}
+
 interface ProfileRow {
   full_name: string | null
   age: number | null

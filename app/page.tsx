@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { isEmergencyProfileComplete, useEmergencyProfile, useGuestUser } from '@/lib/supabase/hooks'
+import {
+  isAnonymousSignInDisabled,
+  isEmergencyProfileComplete,
+  useEmergencyProfile,
+  useGuestUser,
+} from '@/lib/supabase/hooks'
 import { EmergencyProfile } from '@/components/emergency-profile'
 import { LocationTracker } from '@/components/location-tracker'
 import { DisasterAlerts } from '@/components/disaster-alerts'
@@ -106,7 +111,9 @@ export default function SafeNetDashboard() {
           <CardHeader>
             <CardTitle>SafeNet could not prepare your profile</CardTitle>
             <CardDescription>
-              Your private profile session is unavailable. Try again to continue; no password or visible login is needed.
+              {isAnonymousSignInDisabled(guestError)
+                ? 'Private guest profiles are disabled in Supabase. Anonymous sign-ins must be enabled to save details securely.'
+                : 'Your private profile session is unavailable. Try again to continue; no password or visible login is needed.'}
             </CardDescription>
           </CardHeader>
           <CardContent>

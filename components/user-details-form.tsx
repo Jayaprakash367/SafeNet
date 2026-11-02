@@ -231,7 +231,7 @@ export function UserDetailsForm({ initialProfile, onSave, onSaved }: UserDetails
           <Alert className="border-primary/15 bg-primary/5">
             <ShieldCheck aria-hidden="true" className="size-4 text-primary" />
             <AlertDescription>
-              No password or login is needed. Your profile is private to this browser and cannot be recovered if its browser data is cleared or you switch devices.
+              No password or login screen is needed. Your profile is private to this browser and cannot be recovered if its browser data is cleared or you switch devices.
             </AlertDescription>
           </Alert>
 

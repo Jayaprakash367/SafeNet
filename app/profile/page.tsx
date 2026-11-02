@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ProfileSummary } from '@/components/profile-summary'
 import { UserDetailsForm } from '@/components/user-details-form'
 import {
+  isAnonymousSignInDisabled,
   isEmergencyProfileComplete,
   useEmergencyProfile,
   useGuestUser,
@@ -81,7 +82,11 @@ export default function ProfilePage() {
     return (
       <FlowError
         title="Your private profile could not be opened"
-        message="SafeNet could not prepare a private profile session. Please try again."
+        message={
+          isAnonymousSignInDisabled(guestError)
+            ? 'Private guest profiles are disabled in the connected Supabase project. Anonymous sign-ins must be enabled to save details securely.'
+            : 'SafeNet could not prepare a private profile session. Please try again.'
+        }
         onRetry={() => void refreshGuest()}
       />
     )
