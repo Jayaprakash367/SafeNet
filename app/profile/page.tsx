@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ProfileSummary } from '@/components/profile-summary'
 import { UserDetailsForm } from '@/components/user-details-form'
 import {
-  isAnonymousSignInDisabled,
   isEmergencyProfileComplete,
   useEmergencyProfile,
   useGuestUser,
@@ -55,7 +54,6 @@ export default function ProfilePage() {
     user,
     error: guestError,
     isLoading: isGuestLoading,
-    refresh: refreshGuest,
   } = useGuestUser()
   const {
     data,
@@ -68,6 +66,12 @@ export default function ProfilePage() {
   const [view, setView] = useState<'form' | 'summary' | null>(null)
 
   useEffect(() => {
+    if (!isGuestLoading && (!user || guestError)) {
+      router.replace('/')
+    }
+  }, [guestError, isGuestLoading, router, user])
+
+  useEffect(() => {
     if (data && view === null) {
       setView(isEmergencyProfileComplete(data.profile) ? 'summary' : 'form')
     }
@@ -78,18 +82,7 @@ export default function ProfilePage() {
   }
 
   if (guestError || !user) {
-    console.error('[v0] Guest profile session failed:', guestError instanceof Error ? guestError.name : 'NoUser')
-    return (
-      <FlowError
-        title="Your private profile could not be opened"
-        message={
-          isAnonymousSignInDisabled(guestError)
-            ? 'Private guest profiles are disabled in the connected Supabase project. Anonymous sign-ins must be enabled to save details securely.'
-            : 'SafeNet could not prepare a private profile session. Please try again.'
-        }
-        onRetry={() => void refreshGuest()}
-      />
-    )
+    return <FlowLoading label="Opening the main page…" />
   }
 
   if (profileError) {

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   isAnonymousSignInDisabled,
   isEmergencyProfileComplete,
@@ -18,7 +17,6 @@ import { UserProfileHeader } from '@/components/user-profile-header'
 import { SOSButton } from '@/components/sos-button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, MapPin, Phone, Shield, Users, Zap } from 'lucide-react'
 
@@ -41,14 +39,39 @@ const featureHighlights = [
 ]
 
 export default function SafeNetDashboard() {
-  const router = useRouter()
-  const { user, isLoading, error: guestError, refresh: refreshGuest } = useGuestUser()
+  const { user, isLoading, error: guestError } = useGuestUser()
   const {
     profile,
     error: profileError,
     isLoading: isProfileLoading,
-    refresh: refreshProfile,
   } = useEmergencyProfile(user?.id ?? '')
+  const hasReadyProfile = Boolean(
+    user &&
+      !guestError &&
+      !isLoading &&
+      !profileError &&
+      !isProfileLoading &&
+      isEmergencyProfileComplete(profile),
+  )
+  const privateFeatureMessage = (() => {
+    if (!user) {
+      if (isAnonymousSignInDisabled(guestError)) {
+        return 'Private guest profiles are disabled. Saved SOS and SMS features need a private profile.'
+      }
+
+      return 'A private guest profile is needed for saved SOS alerts and SMS tests.'
+    }
+
+    if (profileError) {
+      return 'Your emergency profile could not be loaded. Profile-based features are paused.'
+    }
+
+    if (isProfileLoading) {
+      return 'Loading your emergency profile.'
+    }
+
+    return 'Complete your emergency profile to enable SOS alerts and SMS tests.'
+  })()
   const [isSOSActive, setIsSOSActive] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online')
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -67,12 +90,6 @@ export default function SafeNetDashboard() {
       window.removeEventListener('offline', updateConnectionStatus)
     }
   }, [])
-
-  useEffect(() => {
-    if (user && !isProfileLoading && !profileError && !isEmergencyProfileComplete(profile)) {
-      router.replace('/profile')
-    }
-  }, [isProfileLoading, profile, profileError, router, user])
 
   useEffect(() => {
     if (!user || !navigator.geolocation) {
@@ -101,44 +118,6 @@ export default function SafeNetDashboard() {
       isMounted = false
     }
   }, [user?.id])
-
-  if (guestError || (user && profileError)) {
-    const retry = guestError ? refreshGuest : refreshProfile
-
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-        <Card className="w-full max-w-lg border-destructive/20 shadow-lg">
-          <CardHeader>
-            <CardTitle>SafeNet could not prepare your profile</CardTitle>
-            <CardDescription>
-              {isAnonymousSignInDisabled(guestError)
-                ? 'Private guest profiles are disabled in Supabase. Anonymous sign-ins must be enabled to save details securely.'
-                : 'Your private profile session is unavailable. Try again to continue; no password or visible login is needed.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => void retry()}>Try again</Button>
-          </CardContent>
-        </Card>
-      </main>
-    )
-  }
-
-  if (isLoading || !user || isProfileLoading || !isEmergencyProfileComplete(profile)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-sm border-primary/10 shadow-lg shadow-primary/5">
-          <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-            <Shield aria-hidden="true" className="size-8 animate-pulse text-primary" />
-            <div>
-              <p className="font-semibold text-foreground">Preparing SafeNet...</p>
-              <p className="mt-1 text-sm text-muted-foreground">Opening your profile or emergency dashboard.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,12 +154,36 @@ export default function SafeNetDashboard() {
                 GPS
               </Badge>
             )}
-            <UserProfileHeader user={user} />
+            {user ? (
+              <UserProfileHeader user={user} />
+            ) : (
+              <Badge variant="outline" className="h-8 rounded-full px-3 text-xs font-semibold">
+                No login required
+              </Badge>
+            )}
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8">
+        {!user && (
+          <Alert className="border-primary/20 bg-primary/5" role="status">
+            <Shield aria-hidden="true" className="size-4 text-primary" />
+            <AlertDescription>
+              {isAnonymousSignInDisabled(guestError)
+                ? 'You can use the SafeNet main page without logging in. Private profile, SMS testing, and saved SOS features are paused because guest sessions are unavailable.'
+                : 'The main page is open without login. Profile-based features need a private guest profile.'}
+            </AlertDescription>
+          </Alert>
+        )}
+        {user && profileError && (
+          <Alert className="border-destructive/30 bg-destructive/10" role="alert">
+            <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
+            <AlertDescription>
+              Your emergency profile could not be loaded. SOS and SMS features are paused until it is available.
+            </AlertDescription>
+          </Alert>
+        )}
         {isSOSActive && (
           <Alert className="border-destructive/30 bg-destructive/10">
             <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
@@ -207,6 +210,8 @@ export default function SafeNetDashboard() {
                 onDeactivate={() => setIsSOSActive(false)}
                 userLocation={userLocation}
                 connectionStatus={connectionStatus}
+                disabled={!hasReadyProfile}
+                disabledMessage={privateFeatureMessage}
               />
             </div>
           </CardContent>
@@ -218,7 +223,10 @@ export default function SafeNetDashboard() {
             <CardDescription>Check that emergency texts can reach your phone.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <TestSMSButton />
+            <TestSMSButton
+              disabled={!hasReadyProfile}
+              disabledMessage={privateFeatureMessage}
+            />
           </CardContent>
         </Card>
 
@@ -227,7 +235,24 @@ export default function SafeNetDashboard() {
         <WeatherAlerts />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <EmergencyProfile userId={user.id} />
+          {user ? (
+            <EmergencyProfile userId={user.id} />
+          ) : (
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader>
+                <CardTitle>Emergency Profile</CardTitle>
+                <CardDescription>
+                  Medical details and emergency contacts stay private to your profile.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Alert className="border-primary/15 bg-primary/5" role="status">
+                  <Shield aria-hidden="true" className="size-4 text-primary" />
+                  <AlertDescription>{privateFeatureMessage}</AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
           <LocationTracker />
         </div>
 

@@ -5,11 +5,18 @@ import { CheckCircle, Loader2, MessageSquare, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function TestSMSButton() {
+interface TestSMSButtonProps {
+  disabled?: boolean
+  disabledMessage?: string
+}
+
+export function TestSMSButton({ disabled = false, disabledMessage }: TestSMSButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const sendTestSMS = async () => {
+    if (disabled || isLoading) return
+
     setIsLoading(true)
     setResult(null)
 
@@ -40,11 +47,13 @@ export function TestSMSButton() {
           Test SMS Delivery
         </CardTitle>
         <CardDescription>
-          Sends a real test message to the first emergency contact saved in your profile.
+          {disabled
+            ? disabledMessage ?? 'A private emergency profile is required to send a test message.'
+            : 'Sends a real test message to the first emergency contact saved in your profile.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Button onClick={sendTestSMS} disabled={isLoading} className="w-full whitespace-normal" size="lg">
+        <Button onClick={sendTestSMS} disabled={disabled || isLoading} className="w-full whitespace-normal" size="lg">
           {isLoading ? (
             <>
               <Loader2 aria-hidden="true" className="animate-spin" data-icon="inline-start" />

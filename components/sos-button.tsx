@@ -12,6 +12,8 @@ interface SOSButtonProps {
   onDeactivate: () => void
   userLocation: { lat: number; lng: number } | null
   connectionStatus: 'online' | 'offline'
+  disabled?: boolean
+  disabledMessage?: string
 }
 
 type RequestState = 'idle' | 'sending' | 'success' | 'error'
@@ -22,6 +24,8 @@ export function SOSButton({
   onDeactivate,
   userLocation,
   connectionStatus,
+  disabled = false,
+  disabledMessage = 'A private profile is required to save SOS alerts.',
 }: SOSButtonProps) {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isPressed, setIsPressed] = useState(false)
@@ -29,6 +33,8 @@ export function SOSButton({
   const [requestMessage, setRequestMessage] = useState('')
 
   const handleSOSActivation = useCallback(async () => {
+    if (disabled) return
+
     setIsPressed(false)
     setRequestState('sending')
     setRequestMessage('Saving your SOS alert...')
@@ -71,7 +77,7 @@ export function SOSButton({
         'The SOS alert could not be saved. Check your connection and try again, or contact local emergency services directly.',
       )
     }
-  }, [onActivate, userLocation])
+  }, [disabled, onActivate, userLocation])
 
   useEffect(() => {
     if (countdown === null) {
@@ -92,6 +98,8 @@ export function SOSButton({
   }, [countdown, handleSOSActivation])
 
   const handleSOSPress = () => {
+    if (disabled) return
+
     if (isActive) {
       onDeactivate()
       return
@@ -112,6 +120,13 @@ export function SOSButton({
     setIsPressed(false)
   }
 
+  useEffect(() => {
+    if (disabled && countdown !== null) {
+      setCountdown(null)
+      setIsPressed(false)
+    }
+  }, [countdown, disabled])
+
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-4">
       {countdown !== null && (
@@ -129,7 +144,7 @@ export function SOSButton({
       <Button
         size="lg"
         variant={isActive ? 'destructive' : 'secondary'}
-        disabled={requestState === 'sending'}
+        disabled={disabled || requestState === 'sending'}
         className={cn(
           'h-24 w-24 rounded-full text-sm font-bold transition-all duration-200 sm:h-28 sm:w-28 sm:text-base md:h-32 md:w-32 md:text-lg',
           'touch-manipulation hover:scale-105 active:scale-95',
@@ -159,9 +174,11 @@ export function SOSButton({
 
       <div className="max-w-sm px-4 text-center">
         <p className="text-xs text-muted-foreground sm:text-sm">
-          {isActive
-            ? 'SOS alert saved. Contact local emergency services directly for immediate response.'
-            : 'Press for 5 seconds to save an SOS alert to your account.'}
+          {disabled
+            ? disabledMessage
+            : isActive
+              ? 'SOS alert saved. Contact local emergency services directly for immediate response.'
+              : 'Press for 5 seconds to save an SOS alert to your account.'}
         </p>
 
         <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground sm:gap-4">
