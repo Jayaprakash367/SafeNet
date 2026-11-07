@@ -64,25 +64,15 @@ const PROFILE_COLUMNS =
 async function loadCurrentUser(): Promise<User | null> {
   const supabase = createClient()
   const {
-    data: { user },
+    data: { session },
     error,
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getSession()
 
-  if (!error) {
-    return user
+  if (error) {
+    throw error
   }
 
-  const missingSession =
-    error.name === 'AuthSessionMissingError' ||
-    error.status === 400 ||
-    error.status === 401 ||
-    error.status === 403
-
-  if (missingSession) {
-    return null
-  }
-
-  throw error
+  return session?.user ?? null
 }
 
 export function useAuthUser() {
@@ -118,9 +108,10 @@ async function loadEmergencyProfile(
 ): Promise<EmergencyProfileSnapshot> {
   const supabase = createClient()
   const {
-    data: { user },
+    data: { session },
     error: sessionError,
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getSession()
+  const user = session?.user
 
   if (sessionError || !user || user.id !== userId) {
     throw new Error('Your private profile session could not be verified. Start again to load your profile.')
@@ -205,9 +196,10 @@ export function useEmergencyProfile(userId: string) {
 
     const supabase = createClient()
     const {
-      data: { user },
+      data: { session },
       error: sessionError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getSession()
+    const user = session?.user
 
     if (sessionError || !user || user.id !== userId) {
       throw new Error('Your private profile session expired. Refresh the page and try again.')
