@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE IF NOT EXISTS sos_alerts (
     id SERIAL PRIMARY KEY,
     sos_id VARCHAR(255) UNIQUE NOT NULL,
@@ -39,12 +38,10 @@ CREATE TABLE IF NOT EXISTS emergency_contacts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
-
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_sos_alerts_user_id ON sos_alerts(user_id);
 CREATE INDEX IF NOT EXISTS idx_sos_alerts_timestamp ON sos_alerts(timestamp);
 CREATE INDEX IF NOT EXISTS idx_emergency_contacts_user_id ON emergency_contacts(user_id);
-
 -- Insert sample admin notification record
 INSERT INTO users (user_id, name, emergency_contacts) 
 VALUES ('admin-8825516088', 'SafeNet Admin', ARRAY['8825516088'])
