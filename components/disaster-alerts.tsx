@@ -224,9 +224,18 @@ export function DisasterAlerts({ location: dashboardLocation }: { location?: { l
               </div>
             ) : activeAlerts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No active disaster alerts in your area</p>
-                <p className="text-xs mt-1">Stay safe and check back regularly</p>
+                <AlertTriangle aria-hidden="true" className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                {lastUpdated ? (
+                  <>
+                    <p>No active disaster alerts in your area</p>
+                    <p className="text-xs mt-1">Stay safe and check back regularly</p>
+                  </>
+                ) : (
+                  <>
+                    <p>Choose “Find alerts” to check official feeds</p>
+                    <p className="text-xs mt-1">No location-based alert check has run yet</p>
+                  </>
+                )}
               </div>
             ) : (
               activeAlerts.map((alert) => {

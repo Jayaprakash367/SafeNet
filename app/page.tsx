@@ -39,23 +39,26 @@ const featureHighlights = [
 export default function SafeNetDashboard() {
   const router = useRouter()
   const { user, isLoading, error: authError } = useAuthUser()
+  const [hasMounted, setHasMounted] = useState(false)
+  const isAuthReady = hasMounted && !isLoading
+  const activeUser = isAuthReady ? user : null
   const {
     profile,
     error: profileError,
     isLoading: isProfileLoading,
-  } = useEmergencyProfile(user?.id ?? '')
+  } = useEmergencyProfile(activeUser?.id ?? '')
   const hasReadyProfile = Boolean(
-    user &&
+    activeUser &&
+      isAuthReady &&
       !authError &&
-      !isLoading &&
       !profileError &&
       !isProfileLoading &&
       isEmergencyProfileComplete(profile),
   )
   const privateFeatureMessage = (() => {
-    if (isLoading) return 'Checking your SafeNet account.'
+    if (!isAuthReady) return 'Checking your SafeNet account.'
     if (authError) return 'Your account could not be verified. Sign in again to use private safety features.'
-    if (!user) return 'Sign in to save your emergency profile and send SOS alerts or SMS tests.'
+    if (!activeUser) return 'Sign in to save your emergency profile and send SOS alerts or SMS tests.'
     if (profileError) return 'Your emergency profile could not be loaded. Profile-based features are paused.'
     if (isProfileLoading) return 'Loading your emergency profile.'
     return 'Complete your emergency profile to enable SOS alerts and SMS tests.'
@@ -66,6 +69,7 @@ export default function SafeNetDashboard() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
+    setHasMounted(true)
     const updateConnectionStatus = () => {
       setConnectionStatus(navigator.onLine ? 'online' : 'offline')
     }
@@ -90,7 +94,7 @@ export default function SafeNetDashboard() {
             </div>
             <div className="min-w-0">
               <h1 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-lg font-bold text-transparent">SafeNet</h1>
-              <p className="truncate text-xs font-medium text-muted-foreground">Emergency Response</p>
+              <p className="hidden text-xs font-medium text-muted-foreground sm:block">Emergency Response</p>
             </div>
           </div>
 
@@ -115,8 +119,8 @@ export default function SafeNetDashboard() {
                 GPS
               </Badge>
             )}
-            {user ? (
-              <UserProfileHeader user={user} />
+            {activeUser ? (
+              <UserProfileHeader user={activeUser} />
             ) : (
               <Button asChild variant="outline" size="sm" className="h-8 rounded-full px-4">
                 <Link href="/login?next=%2F">Sign in</Link>
@@ -127,7 +131,15 @@ export default function SafeNetDashboard() {
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8">
-        {!user && !isLoading && (
+        {isAuthReady && authError && (
+          <Alert className="border-destructive/30 bg-destructive/10" role="alert">
+            <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
+            <AlertDescription>
+              Your account could not be verified. Sign in again before using private safety features.
+            </AlertDescription>
+          </Alert>
+        )}
+        {isAuthReady && !activeUser && !authError && (
           <Alert className="border-primary/20 bg-primary/5" role="status">
             <Shield aria-hidden="true" className="size-4 text-primary" />
             <AlertDescription>
@@ -179,7 +191,7 @@ export default function SafeNetDashboard() {
                 emergencyType={selectedEmergencyType}
                 canActivate={hasReadyProfile}
                 accessMessage={privateFeatureMessage}
-                onAccessRequired={() => router.push(user ? '/profile' : '/login?next=%2Fprofile')}
+                onAccessRequired={() => router.push(activeUser ? '/profile' : '/login?next=%2Fprofile')}
               />
             </div>
           </CardContent>
@@ -188,19 +200,20 @@ export default function SafeNetDashboard() {
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-lg font-bold">SMS System Test</CardTitle>
-            <CardDescription>Check that emergency texts can reach your phone.</CardDescription>
+            <CardDescription>Verify delivery to your first saved emergency contact.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             <TestSMSButton
               canSend={hasReadyProfile}
               accessMessage={privateFeatureMessage}
-              onAccessRequired={() => router.push(user ? '/profile' : '/login?next=%2Fprofile')}
+              onAccessRequired={() => router.push(activeUser ? '/profile' : '/login?next=%2Fprofile')}
             />
           </CardContent>
         </Card>
 
         <QuickActions
           userLocation={userLocation}
+          onLocationChange={setUserLocation}
           onEmergencyTypeSelect={(type) => {
             setSelectedEmergencyType(type)
             document.getElementById('sos-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -210,8 +223,8 @@ export default function SafeNetDashboard() {
         <WeatherAlerts location={userLocation} />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          {user ? (
-            <EmergencyProfile userId={user.id} />
+          {activeUser ? (
+            <EmergencyProfile userId={activeUser.id} />
           ) : (
             <Card className="border-border/80 shadow-sm">
               <CardHeader>

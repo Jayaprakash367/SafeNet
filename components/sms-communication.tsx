@@ -26,8 +26,11 @@ interface EmergencyContact {
 }
 
 export function SMSCommunication() {
-  const { user } = useAuthUser()
-  const { profile, isLoading: isProfileLoading } = useEmergencyProfile(user?.id ?? "")
+  const { user, isLoading: isAuthLoading, error: authError } = useAuthUser()
+  const [hasMounted, setHasMounted] = useState(false)
+  const isAuthReady = hasMounted && !isAuthLoading
+  const activeUser = isAuthReady ? user : null
+  const { profile, isLoading: isProfileLoading, error: profileError } = useEmergencyProfile(activeUser?.id ?? "")
   const [isOnline, setIsOnline] = useState(true)
   const [messages, setMessages] = useState<SMSMessage[]>([])
   const [customMessage, setCustomMessage] = useState("")
@@ -46,6 +49,7 @@ export function SMSCommunication() {
   }, [profile.emergencyContact1, profile.emergencyContact2])
 
   useEffect(() => {
+    setHasMounted(true)
     const updateOnlineStatus = () => setIsOnline(navigator.onLine)
     updateOnlineStatus()
     window.addEventListener("online", updateOnlineStatus)
@@ -130,7 +134,7 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
           Emergency contacts load from your saved profile. Messages shown here are previews and are not sent.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="flex flex-col gap-6">
         {!isOnline && (
           <Alert className="border-secondary bg-secondary/10">
             <WifiOff aria-hidden="true" className="size-4 text-secondary" />
@@ -140,9 +144,35 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
           </Alert>
         )}
 
-        {isProfileLoading && <p role="status" className="text-sm text-muted-foreground">Loading saved contacts...</p>}
+        {!isAuthReady && (
+          <p role="status" className="text-sm text-muted-foreground">Checking your SafeNet account...</p>
+        )}
+        {isAuthReady && activeUser && isProfileLoading && (
+          <p role="status" className="text-sm text-muted-foreground">Loading saved contacts...</p>
+        )}
 
-        {!isProfileLoading && emergencyContacts.length === 0 && (
+        {isAuthReady && authError && (
+          <Alert variant="destructive" role="alert">
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>Could not verify your account session. Refresh the page before viewing private contacts.</AlertDescription>
+          </Alert>
+        )}
+
+        {isAuthReady && !authError && !activeUser && (
+          <Alert>
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>Sign in or create an account to view your saved emergency contacts.</AlertDescription>
+          </Alert>
+        )}
+
+        {activeUser && profileError && (
+          <Alert variant="destructive" role="alert">
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>Could not load your private contacts. Refresh the page and try again.</AlertDescription>
+          </Alert>
+        )}
+
+        {activeUser && !isProfileLoading && !profileError && emergencyContacts.length === 0 && (
           <Alert>
             <AlertTriangle aria-hidden="true" className="size-4" />
             <AlertDescription>
@@ -151,7 +181,7 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
           </Alert>
         )}
 
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <h4 className="text-sm font-medium">Emergency Contacts</h4>
           {emergencyContacts.map((contact) => (
             <div key={contact.phone} className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3">
@@ -161,28 +191,25 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
               </div>
               <div className="flex items-center gap-2">
                 <span className="truncate font-mono text-sm">{contact.phone}</span>
-                <Button
-                  aria-label={`Call ${contact.name}`}
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(`tel:${encodeURIComponent(contact.phone)}`)}
-                >
-                  <Phone aria-hidden="true" className="size-3" />
+                <Button asChild size="sm" variant="outline">
+                  <a href={`tel:${encodeURIComponent(contact.phone)}`} aria-label={`Call ${contact.name}`}>
+                    <Phone aria-hidden="true" className="size-3" />
+                  </a>
                 </Button>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <h4 className="text-sm font-medium">Message Previews</h4>
           <div className="grid gap-2 sm:grid-cols-3">
             <Button onClick={previewEmergencyMessage} variant="destructive" disabled={!emergencyContacts.length}>
-              <MessageSquare aria-hidden="true" className="mr-2 size-4" />
+              <MessageSquare aria-hidden="true" data-icon="inline-start" />
               Preview SOS
             </Button>
             <Button onClick={previewTestMessage} variant="outline" disabled={!emergencyContacts.length}>
-              <CheckCircle aria-hidden="true" className="mr-2 size-4" />
+              <CheckCircle aria-hidden="true" data-icon="inline-start" />
               Preview test
             </Button>
             <Button
@@ -190,13 +217,13 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
               onClick={() => setCustomMessage("I am safe and secure. No assistance needed.")}
               disabled={!emergencyContacts.length}
             >
-              <MessageSquare aria-hidden="true" className="mr-2 size-4" />
+              <MessageSquare aria-hidden="true" data-icon="inline-start" />
               Safe message
             </Button>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <Label htmlFor="custom-message" className="text-sm font-medium">
             Custom Message Preview
           </Label>
@@ -209,19 +236,19 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
             className="min-h-[80px]"
           />
           <Button onClick={previewCustomMessage} disabled={!customMessage.trim() || !emergencyContacts.length}>
-            <Send aria-hidden="true" className="mr-2 size-4" />
+            <Send aria-hidden="true" data-icon="inline-start" />
             Preview message
           </Button>
         </div>
 
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <h4 className="text-sm font-medium">Recent Previews</h4>
-          <div className="max-h-64 space-y-2 overflow-y-auto">
+          <div className="max-h-64 flex flex-col gap-2 overflow-y-auto">
             {messages.length === 0 ? (
               <div className="py-4 text-center text-sm text-muted-foreground">No message previews yet</div>
             ) : (
               messages.map((message) => (
-                <div key={message.id} className="space-y-2 rounded-lg bg-muted p-3">
+                <div key={message.id} className="flex flex-col gap-2 rounded-lg bg-muted p-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
                       <Badge variant={getTypeColor(message.type)} className="text-xs">
@@ -241,7 +268,7 @@ This is a preview only. Use the SOS control on the dashboard to save an alert.`
           </div>
         </div>
 
-        <div className="space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
+        <div className="flex flex-col gap-1 border-t border-border pt-4 text-xs text-muted-foreground">
           <p>Message previews are not sent from this panel.</p>
           <p>Use the dashboard SOS action to save an alert and the test control to verify SMS delivery.</p>
         </div>

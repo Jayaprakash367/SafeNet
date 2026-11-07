@@ -194,7 +194,7 @@ export function SOSButton({
           {isActive
             ? 'This alert was saved; any SMS already sent cannot be recalled. SafeNet does not dispatch emergency services.'
             : canActivate
-              ? 'Press for 5 seconds to save an SOS alert and notify your saved contacts.'
+              ? 'Press SOS to start a 5-second countdown. Cancel it if you did not mean to send an alert.'
               : accessMessage}
         </p>
 

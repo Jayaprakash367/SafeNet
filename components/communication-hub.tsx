@@ -1,14 +1,13 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Phone, MessageSquare, Radio, Satellite, CheckCircle, AlertTriangle } from "lucide-react"
+import { AlertTriangle, CheckCircle, MessageSquare, Phone, Radio, Satellite, type LucideIcon } from "lucide-react"
 
 interface CommunicationChannel {
   id: string
@@ -17,7 +16,7 @@ interface CommunicationChannel {
   status: "available" | "unavailable" | "limited"
   priority: number
   description: string
-  icon: React.ComponentType<any>
+  icon: LucideIcon
 }
 
 export function CommunicationHub() {
@@ -26,48 +25,50 @@ export function CommunicationHub() {
       id: "voice_call",
       name: "Voice Calls",
       type: "voice",
-      status: "available",
+      status: "limited",
       priority: 1,
-      description: "Direct emergency calls to 911 and contacts",
+      description: "Calls use your device dialer; SafeNet does not place calls.",
       icon: Phone,
     },
     {
       id: "sms_text",
       name: "SMS Messages",
       type: "sms",
-      status: "available",
+      status: "limited",
       priority: 2,
-      description: "Text messages with location and profile data",
+      description: "SMS to saved contacts requires sign-in, a valid profile, and Twilio configuration.",
       icon: MessageSquare,
     },
     {
       id: "data_internet",
       name: "Internet Data",
       type: "data",
-      status: "available",
+      status: "unavailable",
       priority: 3,
-      description: "App-based alerts and real-time updates",
+      description: "Live weather and disaster feeds require an internet connection.",
       icon: Radio,
     },
     {
       id: "satellite_emergency",
       name: "Satellite Emergency",
       type: "satellite",
-      status: "limited",
+      status: "unavailable",
       priority: 4,
-      description: "Satellite-based emergency beacon (SOS only)",
+      description: "No satellite provider or device integration is configured.",
       icon: Satellite,
     },
   ])
 
   const [activeTests, setActiveTests] = useState<Set<string>>(new Set())
+  const [testFeedback, setTestFeedback] = useState<{ message: string; status: "success" | "error" } | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const updateConnectionStatus = () => {
       setChannels((prev) =>
         prev.map((channel) =>
           channel.id === "data_internet"
-            ? { ...channel, status: navigator.onLine ? "available" : "unavailable" }
+            ? { ...channel, status: navigator.onLine ? "limited" : "unavailable" }
             : channel,
         ),
       )
@@ -84,37 +85,74 @@ export function CommunicationHub() {
   }, [])
 
   const testChannel = async (channelId: string) => {
-    setActiveTests((prev) => new Set(prev).add(channelId))
+    const channel = channels.find((item) => item.id === channelId)
 
-    // Simulate test
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    if (!channel || (channel.type !== "sms" && channel.type !== "data")) {
+      return
+    }
 
-    // Mock test results
-    const success = Math.random() > 0.2 // 80% success rate
+    setActiveTests((previous) => new Set(previous).add(channelId))
+    setTestFeedback(null)
 
-    setChannels((prev) =>
-      prev.map((channel) =>
-        channel.id === channelId ? { ...channel, status: success ? "available" : "unavailable" } : channel,
-      ),
-    )
+    try {
+      const response =
+        channel.type === "sms"
+          ? await fetch("/api/test-sms", { method: "POST" })
+          : await fetch("/api/weather", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lat: 0, lon: 0 }),
+            })
 
-    setActiveTests((prev) => {
-      const newSet = new Set(prev)
-      newSet.delete(channelId)
-      return newSet
-    })
-  }
+      const result = (await response.json().catch(() => ({}))) as {
+        error?: unknown
+        message?: unknown
+      }
 
-  const getStatusColor = (status: CommunicationChannel["status"]) => {
-    switch (status) {
-      case "available":
-        return "text-green-600"
-      case "limited":
-        return "text-yellow-600"
-      case "unavailable":
-        return "text-red-600"
-      default:
-        return "text-muted-foreground"
+      if (response.status === 401) {
+        router.push(`/login?next=${encodeURIComponent("/communication")}`)
+        return
+      }
+
+      if (!response.ok) {
+        setChannels((previous) =>
+          previous.map((item) =>
+            item.id === channelId
+              ? { ...item, status: channel.type === "sms" && response.status === 400 ? "limited" : "unavailable" }
+              : item,
+          ),
+        )
+        setTestFeedback({
+          message: typeof result.error === "string" ? result.error : "This communication service could not be verified.",
+          status: "error",
+        })
+        return
+      }
+
+      setChannels((previous) =>
+        previous.map((item) => (item.id === channelId ? { ...item, status: "available" } : item)),
+      )
+      setTestFeedback({
+        message:
+          channel.type === "sms" && typeof result.message === "string"
+            ? result.message
+            : "The live weather provider responded successfully.",
+        status: "success",
+      })
+    } catch {
+      setChannels((previous) =>
+        previous.map((item) => (item.id === channelId ? { ...item, status: "unavailable" } : item)),
+      )
+      setTestFeedback({
+        message: channel.type === "sms" ? "The SMS test could not be completed. Try again." : "The live data provider could not be reached.",
+        status: "error",
+      })
+    } finally {
+      setActiveTests((previous) => {
+        const next = new Set(previous)
+        next.delete(channelId)
+        return next
+      })
     }
   }
 
@@ -134,30 +172,33 @@ export function CommunicationHub() {
   const getStatusIcon = (status: CommunicationChannel["status"]) => {
     switch (status) {
       case "available":
-        return <CheckCircle className="w-4 h-4 text-green-500" />
+        return <CheckCircle aria-hidden="true" className="size-4 text-primary" />
       case "limited":
-        return <AlertTriangle className="w-4 h-4 text-yellow-500" />
+        return <AlertTriangle aria-hidden="true" className="size-4 text-muted-foreground" />
       case "unavailable":
-        return <AlertTriangle className="w-4 h-4 text-red-500" />
+        return <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
     }
   }
 
-  const availableChannels = channels.filter((c) => c.status === "available").length
-  const totalChannels = channels.length
+  const testableChannels = channels.filter((channel) => channel.type === "sms" || channel.type === "data")
+  const passedTests = testableChannels.filter((channel) => channel.status === "available").length
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Radio className="w-5 h-5 text-primary" />
-            <CardTitle>Communication Hub</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Radio aria-hidden="true" className="size-5 text-primary" />
+              <CardTitle>Communication Hub</CardTitle>
+            </div>
+            <Badge variant={passedTests > 0 ? "default" : "secondary"}>
+              {passedTests}/{testableChannels.length} Checks passed
+            </Badge>
           </div>
-          <Badge variant={availableChannels > 0 ? "default" : "destructive"}>
-            {availableChannels}/{totalChannels} Available
-          </Badge>
-        </div>
-        <CardDescription>Multiple communication channels ensure emergency alerts reach help</CardDescription>
+
+        <CardDescription>
+          Check connected services and your device capabilities. SafeNet does not call emergency services or switch channels automatically.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="status" className="w-full">
@@ -167,43 +208,46 @@ export function CommunicationHub() {
           </TabsList>
 
           <TabsContent value="status" className="space-y-4">
-            {availableChannels === 0 && (
-              <Alert className="border-destructive bg-destructive/10">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-                <AlertDescription className="text-destructive">
-                  <strong>Warning:</strong> No communication channels available. Check device connectivity.
-                </AlertDescription>
+            <p className="text-xs text-muted-foreground">
+              The live feed check uses fixed sample coordinates and does not access your GPS.
+            </p>
+            {testFeedback && (
+              <Alert variant={testFeedback.status === "error" ? "destructive" : "default"} role={testFeedback.status === "error" ? "alert" : "status"}>
+                <AlertDescription>{testFeedback.message}</AlertDescription>
               </Alert>
             )}
 
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               {channels.map((channel) => {
                 const Icon = channel.icon
                 const isTesting = activeTests.has(channel.id)
+                const canTest = channel.type === "sms" || channel.type === "data"
 
                 return (
-                  <div key={channel.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-primary" />
-                      <div>
+                  <div key={channel.id} className="flex flex-col gap-3 rounded-lg bg-muted p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <Icon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+                      <div className="min-w-0">
                         <div className="font-medium text-sm">{channel.name}</div>
                         <div className="text-xs text-muted-foreground">{channel.description}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                       {getStatusIcon(channel.status)}
                       <Badge variant={getStatusBadge(channel.status)} className="text-xs">
                         {channel.status}
                       </Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => testChannel(channel.id)}
-                        disabled={isTesting}
-                        className="text-xs"
-                      >
-                        {isTesting ? "Testing..." : "Test"}
-                      </Button>
+                      {canTest && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => testChannel(channel.id)}
+                          disabled={isTesting}
+                          className="text-xs"
+                        >
+                          {isTesting ? "Testing..." : channel.type === "sms" ? "Send test SMS" : "Test live data"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )
@@ -215,12 +259,12 @@ export function CommunicationHub() {
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Emergency Communication Priority</h4>
               <p className="text-xs text-muted-foreground">
-                SafeNet automatically uses the highest priority available channel for emergency alerts
+                This is a suggested order only. SafeNet does not automatically dispatch alerts or switch channels.
               </p>
             </div>
 
             <div className="space-y-2">
-              {channels
+              {[...channels]
                 .sort((a, b) => a.priority - b.priority)
                 .map((channel, index) => {
                   const Icon = channel.icon
@@ -240,11 +284,10 @@ export function CommunicationHub() {
                 })}
             </div>
 
-            <Alert className="border-primary bg-primary/10">
-              <Radio className="h-4 w-4 text-primary" />
-              <AlertDescription className="text-primary">
-                <strong>Smart Fallback:</strong> If primary channels fail, SafeNet automatically switches to the next
-                available option.
+            <Alert>
+              <Radio aria-hidden="true" />
+              <AlertDescription>
+                SMS alerts go only to your saved emergency contacts when your account and provider are configured. SafeNet does not contact 911 or dispatch responders.
               </AlertDescription>
             </Alert>
           </TabsContent>
@@ -252,10 +295,10 @@ export function CommunicationHub() {
 
         {/* Communication Tips */}
         <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border mt-4">
-          <p>• Voice calls have highest priority for immediate emergencies</p>
-          <p>• SMS works even with poor signal strength</p>
-          <p>• Internet data enables rich emergency information sharing</p>
-          <p>• Satellite emergency beacon works in remote areas</p>
+          <p>• Voice calls are placed from your device phone app.</p>
+          <p>• SMS tests and SOS notifications require a saved contact and configured provider.</p>
+          <p>• Live weather and alert data require internet access.</p>
+          <p>• Satellite communication is not configured in SafeNet.</p>
         </div>
       </CardContent>
     </Card>

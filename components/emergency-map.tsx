@@ -169,9 +169,6 @@ export function EmergencyMap() {
             )}
           </Alert>
         )}
-        {!userLocation && !resources.length && !isLoading && !error && (
-          <p className="text-sm text-muted-foreground">Choose “Find nearby resources” to allow a one-time location search.</p>
-        )}
         <Tabs value={selectedType} onValueChange={setSelectedType} className="w-full">
           <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
             {resourceTypes.slice(0, 6).map((type) => (
@@ -206,12 +203,22 @@ export function EmergencyMap() {
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <RefreshCw className="w-8 h-8 mx-auto mb-2 animate-spin" />
+                  <RefreshCw aria-hidden="true" className="mx-auto mb-2 size-8 animate-spin" />
                   <p>Finding nearby emergency resources...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MapPin aria-hidden="true" className="mx-auto mb-2 size-8 opacity-50" />
+                  <p>Resource results are unavailable right now. See the message above.</p>
+                </div>
+              ) : !userLocation ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MapPin aria-hidden="true" className="mx-auto mb-2 size-8 opacity-50" />
+                  <p>Choose “Find nearby resources” to load local listings.</p>
                 </div>
               ) : filteredResources.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <MapPin aria-hidden="true" className="mx-auto mb-2 size-8 opacity-50" />
                   <p>No {selectedType === "all" ? "" : selectedType} resources found nearby</p>
                 </div>
               ) : (

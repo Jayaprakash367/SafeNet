@@ -9,10 +9,11 @@ import { Phone, MapPin, Heart, Car, Home, Zap, MessageSquare, Brain } from 'luci
 
 interface QuickActionsProps {
   userLocation: { lat: number; lng: number } | null
+  onLocationChange: (location: { lat: number; lng: number } | null) => void
   onEmergencyTypeSelect: (type: string) => void
 }
 
-export function QuickActions({ userLocation, onEmergencyTypeSelect }: QuickActionsProps) {
+export function QuickActions({ userLocation, onLocationChange, onEmergencyTypeSelect }: QuickActionsProps) {
   const [statusMessage, setStatusMessage] = useState('')
   const [isSharing, setIsSharing] = useState(false)
 
@@ -21,17 +22,18 @@ export function QuickActions({ userLocation, onEmergencyTypeSelect }: QuickActio
     setStatusMessage('')
 
     try {
-      const location = userLocation ?? await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+      const location = userLocation ?? await new Promise<{ lat: number; lng: number; accuracy: number }>((resolve, reject) => {
         if (!navigator.geolocation) {
           reject(new Error('Location is not available in this browser.'))
           return
         }
         navigator.geolocation.getCurrentPosition(
-          ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+          ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }),
           () => reject(new Error('Allow location access to share your coordinates.')),
           { timeout: 10000, enableHighAccuracy: true, maximumAge: 300000 },
         )
       })
+      onLocationChange(location)
       const mapUrl = `https://maps.google.com/?q=${location.lat},${location.lng}`
       const text = `My SafeNet location: ${mapUrl}`
 
@@ -93,7 +95,7 @@ export function QuickActions({ userLocation, onEmergencyTypeSelect }: QuickActio
                     return
                   }
                   onEmergencyTypeSelect(action.emergencyType ?? 'General Emergency')
-                  setStatusMessage(`${action.emergencyType} selected. Hold the SOS button to send an alert to your saved contacts.`)
+                  setStatusMessage(`${action.emergencyType} selected. Press SOS to start a 5-second countdown; cancel it if needed.`)
                 }}
               >
                 <span className="flex w-full items-center gap-2">

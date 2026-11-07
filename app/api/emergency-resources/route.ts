@@ -133,6 +133,6 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     console.error('[v0] OpenStreetMap resource lookup failed:', error instanceof Error ? error.name : 'UnknownError')
-    return NextResponse.json({ error: 'Nearby resources could not be loaded. Please try again.' }, { status: 502 })
+    return NextResponse.json({ error: 'OpenStreetMap resource search is temporarily unavailable.' }, { status: 502 })
   }
 }
