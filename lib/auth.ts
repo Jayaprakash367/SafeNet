@@ -1,5 +1,18 @@
 export type ValidationResult = { valid: true } | { valid: false; message: string }
 
+export function getSafeNextPath(value: unknown, fallback = '/'): string {
+  if (
+    typeof value !== 'string' ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.includes('\\')
+  ) {
+    return fallback
+  }
+
+  return value
+}
+
 export function validateEmail(email: string): ValidationResult {
   if (!email) {
     return { valid: false, message: 'Email is required.' }
@@ -17,8 +30,8 @@ export function validatePassword(password: string, fieldName = 'Password'): Vali
     return { valid: false, message: `${fieldName} is required.` }
   }
 
-  if (password.length < 6) {
-    return { valid: false, message: 'Password must be at least 6 characters.' }
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters.' }
   }
 
   if (password.length > 128) {

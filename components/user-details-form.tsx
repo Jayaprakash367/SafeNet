@@ -154,8 +154,9 @@ export function UserDetailsForm({ initialProfile, onSave, onSaved }: UserDetails
                 maxLength={40}
                 required
                 onChange={(event) => updateField('emergencyContact1', event.target.value)}
-                placeholder="+1 555 123 4567"
+                placeholder="+1 415 555 0123"
               />
+              <p className="text-xs text-muted-foreground">Include the country code, for example +14155550123.</p>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -231,7 +232,7 @@ export function UserDetailsForm({ initialProfile, onSave, onSaved }: UserDetails
           <Alert className="border-primary/15 bg-primary/5">
             <ShieldCheck aria-hidden="true" className="size-4 text-primary" />
             <AlertDescription>
-              No password or login screen is needed. Your profile is private to this browser and cannot be recovered if its browser data is cleared or you switch devices.
+              Your emergency details are saved to your account and protected by private, per-user database access. Sign in on another device to access them.
             </AlertDescription>
           </Alert>
 

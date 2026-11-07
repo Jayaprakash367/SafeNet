@@ -56,14 +56,14 @@ export async function updateSession(request: NextRequest) {
       error?.status === 403
 
     if (error && !isMissingSession) {
-      console.error('[v0] Supabase guest session refresh failed:', {
+      console.error('[v0] Supabase account session refresh failed:', {
         name: error.name,
         status: error.status,
         code: error.code,
       })
     }
   } catch (error) {
-    console.error('[v0] Supabase guest session refresh failed:', error instanceof Error ? error.name : 'UnknownError')
+    console.error('[v0] Supabase account session refresh failed:', error instanceof Error ? error.name : 'UnknownError')
   }
 
   return addSecurityHeaders(response)

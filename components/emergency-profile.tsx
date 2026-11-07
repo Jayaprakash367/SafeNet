@@ -69,7 +69,10 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
   }
 
   const isProfileComplete = Boolean(
-    profile.name.trim() && profile.age.trim() && profile.bloodGroup && profile.emergencyContact1.trim(),
+    profile.name.trim() &&
+      profile.age.trim() &&
+      profile.bloodGroup &&
+      /^\+[1-9]\d{7,14}$/.test(profile.emergencyContact1.replace(/[\s()-]/g, '')),
   )
 
   return (
@@ -99,7 +102,7 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
             </Button>
           </div>
         </div>
-        <CardDescription>Critical information stays in your private profile and is included with your SOS alerts.</CardDescription>
+        <CardDescription>Profile details are stored privately and attached to your saved SafeNet alert record.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading && <p className="text-sm text-muted-foreground" role="status">Loading your saved profile...</p>}

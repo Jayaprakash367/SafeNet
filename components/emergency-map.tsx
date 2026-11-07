@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -14,105 +14,53 @@ interface EmergencyResource {
   type: "hospital" | "police" | "fire" | "shelter" | "pharmacy" | "gas_station"
   address: string
   phone: string
-  distance: number // in km
-  isOpen: boolean
+  distance: number
+  openingHours: string | null
   coordinates: { lat: number; lng: number }
-  specialties?: string[]
-  capacity?: number
+  sourceUrl: string
 }
 
 export function EmergencyMap() {
-  const [userLocation] = useState({ lat: 40.7128, lng: -74.006 }) // Mock NYC location
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [resources, setResources] = useState<EmergencyResource[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedType, setSelectedType] = useState<string>("all")
-
-  useEffect(() => {
-    fetchNearbyResources()
-  }, [])
+  const [error, setError] = useState('')
+  const [selectedType, setSelectedType] = useState<string>('all')
 
   const fetchNearbyResources = async () => {
     setIsLoading(true)
+    setError('')
 
     try {
-      // Simulate API call to find nearby emergency resources
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      const mockResources = generateMockResources()
-      setResources(mockResources)
-    } catch (error) {
-      console.error("Failed to fetch emergency resources:", error)
+      const location = userLocation ?? await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Location is not supported by this browser.'))
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+          () => reject(new Error('Allow location access to search for nearby resources.')),
+          { timeout: 10000, enableHighAccuracy: true, maximumAge: 300000 },
+        )
+      })
+      setUserLocation(location)
+      const parameters = new URLSearchParams({
+        lat: String(location.lat),
+        lng: String(location.lng),
+        radius: '10',
+        type: 'all',
+      })
+      const response = await fetch(`/api/emergency-resources?${parameters}`, { cache: 'no-store' })
+      const data = (await response.json()) as { resources?: EmergencyResource[]; error?: string }
+      if (!response.ok || !Array.isArray(data.resources)) {
+        throw new Error(data.error ?? 'Nearby resources could not be loaded.')
+      }
+      setResources(data.resources)
+    } catch (fetchError) {
+      setError(fetchError instanceof Error ? fetchError.message : 'Nearby resources could not be loaded.')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const generateMockResources = (): EmergencyResource[] => {
-    return [
-      {
-        id: "hospital_1",
-        name: "City General Hospital",
-        type: "hospital",
-        address: "123 Medical Center Dr, New York, NY 10001",
-        phone: "+1-555-0123",
-        distance: 2.3,
-        isOpen: true,
-        coordinates: { lat: 40.715, lng: -74.008 },
-        specialties: ["Emergency", "Trauma", "Cardiology"],
-        capacity: 85,
-      },
-      {
-        id: "police_1",
-        name: "Police Precinct 12",
-        type: "police",
-        address: "456 Safety St, New York, NY 10002",
-        phone: "+1-555-0456",
-        distance: 1.8,
-        isOpen: true,
-        coordinates: { lat: 40.714, lng: -74.007 },
-      },
-      {
-        id: "fire_1",
-        name: "Fire Station #7",
-        type: "fire",
-        address: "789 Rescue Ave, New York, NY 10003",
-        phone: "+1-555-0789",
-        distance: 1.2,
-        isOpen: true,
-        coordinates: { lat: 40.716, lng: -74.009 },
-      },
-      {
-        id: "shelter_1",
-        name: "Community Emergency Shelter",
-        type: "shelter",
-        address: "321 Safe Haven Blvd, New York, NY 10004",
-        phone: "+1-555-0321",
-        distance: 3.1,
-        isOpen: true,
-        coordinates: { lat: 40.71, lng: -74.01 },
-        capacity: 200,
-      },
-      {
-        id: "pharmacy_1",
-        name: "24/7 Emergency Pharmacy",
-        type: "pharmacy",
-        address: "654 Health St, New York, NY 10005",
-        phone: "+1-555-0654",
-        distance: 0.8,
-        isOpen: true,
-        coordinates: { lat: 40.7135, lng: -74.0065 },
-      },
-      {
-        id: "gas_1",
-        name: "Emergency Fuel Station",
-        type: "gas_station",
-        address: "987 Fuel Rd, New York, NY 10006",
-        phone: "+1-555-0987",
-        distance: 2.7,
-        isOpen: true,
-        coordinates: { lat: 40.711, lng: -74.011 },
-      },
-    ]
   }
 
   const getResourceIcon = (type: EmergencyResource["type"]) => {
@@ -166,12 +114,13 @@ export function EmergencyMap() {
 
   const openGoogleMaps = (resource: EmergencyResource) => {
     const url = `https://maps.google.com/?q=${resource.coordinates.lat},${resource.coordinates.lng}`
-    window.open(url, "_blank")
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const getDirections = (resource: EmergencyResource) => {
-    const url = `https://maps.google.com/maps?saddr=${userLocation.lat},${userLocation.lng}&daddr=${resource.coordinates.lat},${resource.coordinates.lng}`
-    window.open(url, "_blank")
+    if (!userLocation) return
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${resource.coordinates.lat},${resource.coordinates.lng}`
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -190,12 +139,39 @@ export function EmergencyMap() {
             className="flex items-center gap-1 bg-transparent"
           >
             <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
+            {isLoading ? 'Searching…' : userLocation ? 'Refresh' : 'Find nearby resources'}
           </Button>
         </div>
         <CardDescription>Nearest hospitals, police stations, shelters, and emergency services</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {error && (
+          <Alert role="alert" className="border-destructive/30 bg-destructive/10">
+            <AlertDescription>
+              {error}
+              {userLocation && (
+                <span className="mt-2 block">
+                  Resource data can be temporarily unavailable. You can still search a map provider for nearby services.
+                </span>
+              )}
+            </AlertDescription>
+            {userLocation && (
+              <Button asChild variant="outline" size="sm" className="mt-2">
+                <a
+                  href={`https://www.google.com/maps/search/emergency+services/@${userLocation.lat},${userLocation.lng},14z`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink aria-hidden="true" data-icon="inline-start" />
+                  Search nearby services
+                </a>
+              </Button>
+            )}
+          </Alert>
+        )}
+        {!userLocation && !resources.length && !isLoading && !error && (
+          <p className="text-sm text-muted-foreground">Choose “Find nearby resources” to allow a one-time location search.</p>
+        )}
         <Tabs value={selectedType} onValueChange={setSelectedType} className="w-full">
           <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
             {resourceTypes.slice(0, 6).map((type) => (
@@ -211,17 +187,20 @@ export function EmergencyMap() {
           </TabsList>
 
           <TabsContent value={selectedType} className="space-y-4">
-            {/* Current Location */}
-            <Alert className="border-primary bg-primary/10">
-              <Navigation className="h-4 w-4 text-primary" />
-              <AlertDescription className="text-primary">
-                <strong>Your Location:</strong> {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-                <Button variant="ghost" size="sm" className="ml-2 h-auto p-1">
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  View on Map
-                </Button>
-              </AlertDescription>
-            </Alert>
+            {userLocation && (
+              <Alert className="border-primary/20 bg-primary/5">
+                <Navigation aria-hidden="true" className="size-4 text-primary" />
+                <div className="flex flex-wrap items-center gap-2 text-sm text-primary">
+                  <p><strong>Your location:</strong> {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</p>
+                  <Button asChild variant="ghost" size="sm" className="h-auto p-1">
+                    <a href={`https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink aria-hidden="true" className="mr-1 size-3" />
+                      View map
+                    </a>
+                  </Button>
+                </div>
+              </Alert>
+            )}
 
             {/* Resources List */}
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -247,11 +226,9 @@ export function EmergencyMap() {
                           <div className="flex items-start gap-3">
                             <Icon className={`w-5 h-5 mt-0.5 ${getResourceColor(resource.type)}`} />
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <h4 className="font-medium text-sm">{resource.name}</h4>
-                                <Badge variant={resource.isOpen ? "default" : "destructive"} className="text-xs">
-                                  {resource.isOpen ? "Open" : "Closed"}
-                                </Badge>
+                                {resource.openingHours && <Badge variant="outline" className="text-xs">Hours listed</Badge>}
                               </div>
                               <p className="text-xs text-muted-foreground capitalize">
                                 {resource.type.replace("_", " ")}
@@ -260,43 +237,25 @@ export function EmergencyMap() {
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-medium">{resource.distance.toFixed(1)} km</div>
-                            <div className="text-xs text-muted-foreground">
-                              ~{Math.round(resource.distance * 2)} min drive
-                            </div>
                           </div>
                         </div>
 
                         {/* Resource Details */}
                         <div className="space-y-2 text-xs">
                           <div className="flex items-start gap-2">
-                            <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <span className="text-muted-foreground text-pretty">{resource.address}</span>
+                            <MapPin aria-hidden="true" className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
+                            <span className="text-pretty text-muted-foreground">{resource.address || 'Address not listed; use map directions.'}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Phone className="w-3 h-3 text-muted-foreground" />
-                            <a href={`tel:${resource.phone}`} className="text-primary hover:underline">
-                              {resource.phone}
-                            </a>
+                            <Phone aria-hidden="true" className="size-3 text-muted-foreground" />
+                            {resource.phone ? (
+                              <a href={`tel:${resource.phone}`} className="text-primary hover:underline">{resource.phone}</a>
+                            ) : (
+                              <span className="text-muted-foreground">Phone not listed</span>
+                            )}
                           </div>
+                          {resource.openingHours && <p className="text-muted-foreground">Listed hours: {resource.openingHours}</p>}
                         </div>
-
-                        {/* Additional Info */}
-                        {(resource.specialties || resource.capacity) && (
-                          <div className="space-y-1 text-xs">
-                            {resource.specialties && (
-                              <div>
-                                <span className="text-muted-foreground">Specialties: </span>
-                                <span>{resource.specialties.join(", ")}</span>
-                              </div>
-                            )}
-                            {resource.capacity && (
-                              <div>
-                                <span className="text-muted-foreground">Capacity: </span>
-                                <span>{resource.capacity} people</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
 
                         {/* Action Buttons */}
                         <div className="flex gap-2 pt-2 border-t border-border">
@@ -304,6 +263,7 @@ export function EmergencyMap() {
                             variant="outline"
                             size="sm"
                             onClick={() => getDirections(resource)}
+                            disabled={!userLocation}
                             className="flex items-center gap-1 text-xs"
                           >
                             <Route className="w-3 h-3" />
@@ -318,15 +278,19 @@ export function EmergencyMap() {
                             <ExternalLink className="w-3 h-3" />
                             View Map
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(`tel:${resource.phone}`)}
-                            className="flex items-center gap-1 text-xs"
-                          >
-                            <Phone className="w-3 h-3" />
-                            Call
-                          </Button>
+                          {resource.phone ? (
+                            <Button asChild variant="outline" size="sm" className="flex items-center gap-1 text-xs">
+                              <a href={`tel:${resource.phone}`}>
+                                <Phone aria-hidden="true" className="size-3" />
+                                Call
+                              </a>
+                            </Button>
+                          ) : (
+                            <Button variant="outline" size="sm" disabled className="flex items-center gap-1 text-xs">
+                              <Phone aria-hidden="true" className="size-3" />
+                              No phone
+                            </Button>
+                          )}
                         </div>
                       </div>
                     )
@@ -338,10 +302,9 @@ export function EmergencyMap() {
 
         {/* Map Information */}
         <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
-          <p>• Resources are sorted by distance from your current location</p>
-          <p>• Tap "Directions" for turn-by-turn navigation</p>
-          <p>• Call buttons work even without internet connection</p>
-          <p>• Resource availability is updated in real-time</p>
+          <p>Listings are sourced from <a className="underline underline-offset-2" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>; coverage and contact details may be incomplete.</p>
+          <p>• Directions and calls open apps on your device.</p>
+          <p>• Verify hours and contact details before traveling.</p>
         </div>
       </CardContent>
     </Card>

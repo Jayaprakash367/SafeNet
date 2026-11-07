@@ -12,7 +12,7 @@ export async function POST() {
     } = await supabase.auth.getUser()
 
     if (authError && authError.name !== 'AuthSessionMissingError') {
-      console.error('[v0] SMS test authentication failed:', authError.code ?? authError.name)
+      console.error('[v0] SMS test account authentication failed:', authError.code ?? authError.name)
       return NextResponse.json(
         { error: 'Your private profile session is temporarily unavailable.' },
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
@@ -21,7 +21,7 @@ export async function POST() {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Create a profile before testing SMS delivery.' },
+        { error: 'Sign in before testing SMS delivery.' },
         { status: 401, headers: { 'Cache-Control': 'no-store' } },
       )
     }

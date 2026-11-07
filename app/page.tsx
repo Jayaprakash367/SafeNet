@@ -1,12 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  isAnonymousSignInDisabled,
-  isEmergencyProfileComplete,
-  useEmergencyProfile,
-  useGuestUser,
-} from '@/lib/supabase/hooks'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { isEmergencyProfileComplete, useAuthUser, useEmergencyProfile } from '@/lib/supabase/hooks'
 import { EmergencyProfile } from '@/components/emergency-profile'
 import { LocationTracker } from '@/components/location-tracker'
 import { DisasterAlerts } from '@/components/disaster-alerts'
@@ -16,6 +13,7 @@ import WeatherAlerts from '@/components/weather-alerts'
 import { UserProfileHeader } from '@/components/user-profile-header'
 import { SOSButton } from '@/components/sos-button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, MapPin, Phone, Shield, Users, Zap } from 'lucide-react'
@@ -23,23 +21,24 @@ import { AlertTriangle, MapPin, Phone, Shield, Users, Zap } from 'lucide-react'
 const featureHighlights = [
   {
     icon: Phone,
-    title: 'AI Voice Verification',
-    description: 'Automatic callback and voice recording for urgent emergencies.',
+    title: 'Emergency contact alerts',
+    description: 'Send a saved SOS alert to your emergency contacts by SMS.',
   },
   {
     icon: MapPin,
-    title: 'Smart Location Sharing',
-    description: 'Share GPS coordinates with an SMS fallback when connectivity is limited.',
+    title: 'Smart location sharing',
+    description: 'Share GPS coordinates from your device when you choose.',
   },
   {
     icon: Users,
-    title: 'Priority Response',
-    description: 'Prioritize alerts using your emergency profile and incident details.',
+    title: 'Private safety profile',
+    description: 'Keep medical details and contacts protected by your account.',
   },
 ]
 
 export default function SafeNetDashboard() {
-  const { user, isLoading, error: guestError } = useGuestUser()
+  const router = useRouter()
+  const { user, isLoading, error: authError } = useAuthUser()
   const {
     profile,
     error: profileError,
@@ -47,32 +46,22 @@ export default function SafeNetDashboard() {
   } = useEmergencyProfile(user?.id ?? '')
   const hasReadyProfile = Boolean(
     user &&
-      !guestError &&
+      !authError &&
       !isLoading &&
       !profileError &&
       !isProfileLoading &&
       isEmergencyProfileComplete(profile),
   )
   const privateFeatureMessage = (() => {
-    if (!user) {
-      if (isAnonymousSignInDisabled(guestError)) {
-        return 'Private guest profiles are disabled. Saved SOS and SMS features need a private profile.'
-      }
-
-      return 'A private guest profile is needed for saved SOS alerts and SMS tests.'
-    }
-
-    if (profileError) {
-      return 'Your emergency profile could not be loaded. Profile-based features are paused.'
-    }
-
-    if (isProfileLoading) {
-      return 'Loading your emergency profile.'
-    }
-
+    if (isLoading) return 'Checking your SafeNet account.'
+    if (authError) return 'Your account could not be verified. Sign in again to use private safety features.'
+    if (!user) return 'Sign in to save your emergency profile and send SOS alerts or SMS tests.'
+    if (profileError) return 'Your emergency profile could not be loaded. Profile-based features are paused.'
+    if (isProfileLoading) return 'Loading your emergency profile.'
     return 'Complete your emergency profile to enable SOS alerts and SMS tests.'
   })()
   const [isSOSActive, setIsSOSActive] = useState(false)
+  const [selectedEmergencyType, setSelectedEmergencyType] = useState('General Emergency')
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online')
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -91,34 +80,6 @@ export default function SafeNetDashboard() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!user || !navigator.geolocation) {
-      return
-    }
-
-    let isMounted = true
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (isMounted) {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          })
-        }
-      },
-      () => {
-        if (isMounted) {
-          setUserLocation(null)
-        }
-      },
-      { timeout: 5000, enableHighAccuracy: true, maximumAge: 300000 },
-    )
-
-    return () => {
-      isMounted = false
-    }
-  }, [user?.id])
-
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-card/90 backdrop-blur-lg">
@@ -129,7 +90,7 @@ export default function SafeNetDashboard() {
             </div>
             <div className="min-w-0">
               <h1 className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-lg font-bold text-transparent">SafeNet</h1>
-              <p className="truncate text-xs font-medium text-muted-foreground">AI Emergency Response</p>
+              <p className="truncate text-xs font-medium text-muted-foreground">Emergency Response</p>
             </div>
           </div>
 
@@ -157,23 +118,25 @@ export default function SafeNetDashboard() {
             {user ? (
               <UserProfileHeader user={user} />
             ) : (
-              <Badge variant="outline" className="h-8 rounded-full px-3 text-xs font-semibold">
-                No login required
-              </Badge>
+              <Button asChild variant="outline" size="sm" className="h-8 rounded-full px-4">
+                <Link href="/login?next=%2F">Sign in</Link>
+              </Button>
             )}
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8">
-        {!user && (
+        {!user && !isLoading && (
           <Alert className="border-primary/20 bg-primary/5" role="status">
             <Shield aria-hidden="true" className="size-4 text-primary" />
             <AlertDescription>
-              {isAnonymousSignInDisabled(guestError)
-                ? 'You can use the SafeNet main page without logging in. Private profile, SMS testing, and saved SOS features are paused because guest sessions are unavailable.'
-                : 'The main page is open without login. Profile-based features need a private guest profile.'}
+              The dashboard is open to everyone. Sign in to save your emergency profile, send SOS alerts to your contacts, and test SMS delivery.
             </AlertDescription>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button asChild size="sm"><Link href="/login?next=%2F">Sign in</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link href="/sign-up?next=%2Fprofile">Create account</Link></Button>
+            </div>
           </Alert>
         )}
         {user && profileError && (
@@ -188,18 +151,21 @@ export default function SafeNetDashboard() {
           <Alert className="border-destructive/30 bg-destructive/10">
             <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
             <AlertDescription className="font-medium text-destructive">
-              SOS alert is active. Keep your phone nearby and follow the safety instructions.
+              Your SafeNet alert was saved. SMS notifications cannot be recalled; SafeNet does not dispatch emergency services.
             </AlertDescription>
           </Alert>
         )}
 
-        <Card className="overflow-hidden border-primary/10 shadow-xl shadow-primary/5">
+        <Card id="sos-section" className="overflow-hidden border-primary/10 shadow-xl shadow-primary/5">
           <CardHeader className="bg-gradient-to-b from-primary/5 to-transparent pb-4 text-center sm:pb-6">
             <CardTitle className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-balance text-2xl font-bold text-transparent sm:text-3xl">
               Emergency SOS System
             </CardTitle>
             <CardDescription className="mx-auto max-w-2xl text-pretty text-base sm:text-lg">
-              Start an SOS alert with location sharing and AI-assisted verification.
+              Save an SOS alert and notify your saved emergency contacts by SMS when configured.
+              {selectedEmergencyType !== 'General Emergency' && (
+                <span className="mt-1 block font-medium text-primary">Selected: {selectedEmergencyType}</span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pb-6 sm:pb-8">
@@ -210,8 +176,10 @@ export default function SafeNetDashboard() {
                 onDeactivate={() => setIsSOSActive(false)}
                 userLocation={userLocation}
                 connectionStatus={connectionStatus}
-                disabled={!hasReadyProfile}
-                disabledMessage={privateFeatureMessage}
+                emergencyType={selectedEmergencyType}
+                canActivate={hasReadyProfile}
+                accessMessage={privateFeatureMessage}
+                onAccessRequired={() => router.push(user ? '/profile' : '/login?next=%2Fprofile')}
               />
             </div>
           </CardContent>
@@ -224,15 +192,22 @@ export default function SafeNetDashboard() {
           </CardHeader>
           <CardContent className="flex justify-center">
             <TestSMSButton
-              disabled={!hasReadyProfile}
-              disabledMessage={privateFeatureMessage}
+              canSend={hasReadyProfile}
+              accessMessage={privateFeatureMessage}
+              onAccessRequired={() => router.push(user ? '/profile' : '/login?next=%2Fprofile')}
             />
           </CardContent>
         </Card>
 
-        <QuickActions />
+        <QuickActions
+          userLocation={userLocation}
+          onEmergencyTypeSelect={(type) => {
+            setSelectedEmergencyType(type)
+            document.getElementById('sos-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }}
+        />
 
-        <WeatherAlerts />
+        <WeatherAlerts location={userLocation} />
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {user ? (
@@ -253,10 +228,10 @@ export default function SafeNetDashboard() {
               </CardContent>
             </Card>
           )}
-          <LocationTracker />
+          <LocationTracker onLocationChange={setUserLocation} />
         </div>
 
-        <DisasterAlerts />
+        <DisasterAlerts location={userLocation} />
 
         <Card className="border-border/80 shadow-sm">
           <CardHeader>

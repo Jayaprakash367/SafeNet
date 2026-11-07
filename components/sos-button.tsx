@@ -10,10 +10,12 @@ interface SOSButtonProps {
   isActive: boolean
   onActivate: () => void
   onDeactivate: () => void
-  userLocation: { lat: number; lng: number } | null
+  userLocation: { lat: number; lng: number; accuracy?: number } | null
   connectionStatus: 'online' | 'offline'
-  disabled?: boolean
-  disabledMessage?: string
+  emergencyType: string
+  canActivate: boolean
+  accessMessage: string
+  onAccessRequired: () => void
 }
 
 type RequestState = 'idle' | 'sending' | 'success' | 'error'
@@ -24,8 +26,10 @@ export function SOSButton({
   onDeactivate,
   userLocation,
   connectionStatus,
-  disabled = false,
-  disabledMessage = 'A private profile is required to save SOS alerts.',
+  emergencyType,
+  canActivate,
+  accessMessage,
+  onAccessRequired,
 }: SOSButtonProps) {
   const [countdown, setCountdown] = useState<number | null>(null)
   const [isPressed, setIsPressed] = useState(false)
@@ -33,7 +37,7 @@ export function SOSButton({
   const [requestMessage, setRequestMessage] = useState('')
 
   const handleSOSActivation = useCallback(async () => {
-    if (disabled) return
+    if (!canActivate) return
 
     setIsPressed(false)
     setRequestState('sending')
@@ -44,10 +48,10 @@ export function SOSButton({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          emergencyType: 'General Emergency',
+          emergencyType,
           urgency: 'high',
           location: userLocation
-            ? { latitude: userLocation.lat, longitude: userLocation.lng }
+            ? { latitude: userLocation.lat, longitude: userLocation.lng, accuracy: userLocation.accuracy }
             : null,
         }),
       })
@@ -77,7 +81,7 @@ export function SOSButton({
         'The SOS alert could not be saved. Check your connection and try again, or contact local emergency services directly.',
       )
     }
-  }, [disabled, onActivate, userLocation])
+  }, [canActivate, emergencyType, onActivate, userLocation])
 
   useEffect(() => {
     if (countdown === null) {
@@ -98,14 +102,12 @@ export function SOSButton({
   }, [countdown, handleSOSActivation])
 
   const handleSOSPress = () => {
-    if (disabled) return
-
-    if (isActive) {
-      onDeactivate()
+    if (!canActivate) {
+      onAccessRequired()
       return
     }
 
-    if (requestState === 'sending') {
+    if (isActive || requestState === 'sending') {
       return
     }
 
@@ -121,11 +123,11 @@ export function SOSButton({
   }
 
   useEffect(() => {
-    if (disabled && countdown !== null) {
+    if (!canActivate && countdown !== null) {
       setCountdown(null)
       setIsPressed(false)
     }
-  }, [countdown, disabled])
+  }, [countdown, canActivate])
 
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-4">
@@ -144,7 +146,7 @@ export function SOSButton({
       <Button
         size="lg"
         variant={isActive ? 'destructive' : 'secondary'}
-        disabled={disabled || requestState === 'sending'}
+        disabled={isActive || requestState === 'sending'}
         className={cn(
           'h-24 w-24 rounded-full text-sm font-bold transition-all duration-200 sm:h-28 sm:w-28 sm:text-base md:h-32 md:w-32 md:text-lg',
           'touch-manipulation hover:scale-105 active:scale-95',
@@ -155,7 +157,7 @@ export function SOSButton({
       >
         <span className="flex flex-col items-center gap-1 sm:gap-2">
           <AlertTriangle aria-hidden="true" className="size-6 sm:size-7 md:size-8" />
-          {isActive ? 'STOP SOS' : requestState === 'sending' ? 'SAVING' : 'SOS'}
+          {isActive ? 'ALERT SENT' : requestState === 'sending' ? 'SAVING' : 'SOS'}
         </span>
       </Button>
 
@@ -172,13 +174,28 @@ export function SOSButton({
         </Alert>
       )}
 
+      {isActive && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            onDeactivate()
+            setRequestState('idle')
+            setRequestMessage('')
+          }}
+        >
+          Start another SOS
+        </Button>
+      )}
+
       <div className="max-w-sm px-4 text-center">
         <p className="text-xs text-muted-foreground sm:text-sm">
-          {disabled
-            ? disabledMessage
-            : isActive
-              ? 'SOS alert saved. Contact local emergency services directly for immediate response.'
-              : 'Press for 5 seconds to save an SOS alert to your account.'}
+          {isActive
+            ? 'This alert was saved; any SMS already sent cannot be recalled. SafeNet does not dispatch emergency services.'
+            : canActivate
+              ? 'Press for 5 seconds to save an SOS alert and notify your saved contacts.'
+              : accessMessage}
         </p>
 
         <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground sm:gap-4">

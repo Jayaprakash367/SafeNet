@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useEmergencyProfile, useGuestUser } from "@/lib/supabase/hooks"
+import { useAuthUser, useEmergencyProfile } from "@/lib/supabase/hooks"
 
 interface SMSMessage {
   id: string
@@ -26,7 +26,7 @@ interface EmergencyContact {
 }
 
 export function SMSCommunication() {
-  const { user } = useGuestUser()
+  const { user } = useAuthUser()
   const { profile, isLoading: isProfileLoading } = useEmergencyProfile(user?.id ?? "")
   const [isOnline, setIsOnline] = useState(true)
   const [messages, setMessages] = useState<SMSMessage[]>([])

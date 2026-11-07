@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import { User as UserIcon, MapPin, Phone } from 'lucide-react'
+import { User as UserIcon, MapPin, Phone, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +25,7 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
   const router = useRouter()
   const { profile } = useEmergencyProfile(user.id)
   const [locationStatus, setLocationStatus] = useState<'granted' | 'denied' | 'prompt'>('prompt')
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -54,6 +56,17 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
 
   const handleEditProfile = () => {
     router.push('/profile')
+  }
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    const { error } = await createClient().auth.signOut()
+    if (error) {
+      setIsSigningOut(false)
+      return
+    }
+    router.replace('/')
+    router.refresh()
   }
 
   const requestLocation = () => {
@@ -110,7 +123,7 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
                 <UserIcon aria-hidden="true" className="size-3 sm:size-4" />
                 <span className="truncate text-sm font-medium sm:text-base">{displayName}</span>
               </div>
-              <p className="truncate text-xs text-muted-foreground">Private guest profile · this browser</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email || 'Private account'}</p>
 
               <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center space-x-1">
@@ -176,6 +189,10 @@ export function UserProfileHeader({ user }: UserProfileHeaderProps) {
           <DropdownMenuItem onClick={handleEditProfile} className="text-sm">
             <UserIcon aria-hidden="true" className="mr-2 size-3 sm:size-4" />
             <span>Edit profile</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleSignOut} disabled={isSigningOut} className="text-sm">
+            <LogOut aria-hidden="true" className="mr-2 size-3 sm:size-4" />
+            <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

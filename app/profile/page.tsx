@@ -10,8 +10,8 @@ import { ProfileSummary } from '@/components/profile-summary'
 import { UserDetailsForm } from '@/components/user-details-form'
 import {
   isEmergencyProfileComplete,
+  useAuthUser,
   useEmergencyProfile,
-  useGuestUser,
 } from '@/lib/supabase/hooks'
 
 function FlowLoading({ label }: { label: string }) {
@@ -38,7 +38,7 @@ function FlowError({ title, message, onRetry }: { title: string; message: string
         <CardContent className="flex flex-col gap-4">
           <Alert className="border-primary/15 bg-primary/5">
             <AlertDescription>
-              SafeNet uses a private guest profile, so no email, password, or visible login is required.
+              Your profile is protected by your account and is only available after you sign in.
             </AlertDescription>
           </Alert>
           <Button onClick={onRetry} className="self-start">Try again</Button>
@@ -52,9 +52,9 @@ export default function ProfilePage() {
   const router = useRouter()
   const {
     user,
-    error: guestError,
-    isLoading: isGuestLoading,
-  } = useGuestUser()
+    error: authError,
+    isLoading: isAuthLoading,
+  } = useAuthUser()
   const {
     data,
     profile,
@@ -66,10 +66,10 @@ export default function ProfilePage() {
   const [view, setView] = useState<'form' | 'summary' | null>(null)
 
   useEffect(() => {
-    if (!isGuestLoading && (!user || guestError)) {
-      router.replace('/')
+    if (!isAuthLoading && (!user || authError)) {
+      router.replace(`/login?next=${encodeURIComponent('/profile')}`)
     }
-  }, [guestError, isGuestLoading, router, user])
+  }, [authError, isAuthLoading, router, user])
 
   useEffect(() => {
     if (data && view === null) {
@@ -77,12 +77,12 @@ export default function ProfilePage() {
     }
   }, [data, view])
 
-  if (isGuestLoading || (!user && !guestError) || (user && isProfileLoading)) {
+  if (isAuthLoading || !user || isProfileLoading) {
     return <FlowLoading label="Preparing your private profile…" />
   }
 
-  if (guestError || !user) {
-    return <FlowLoading label="Opening the main page…" />
+  if (authError) {
+    return <FlowError title="Your account could not be verified" message="Sign in again to access your private profile." onRetry={() => router.replace('/login?next=%2Fprofile')} />
   }
 
   if (profileError) {
@@ -112,7 +112,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
-            No login needed
+            Private account
           </span>
         </header>
 

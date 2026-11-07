@@ -1,78 +1,70 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, MapPin, Heart, Car, Home, Zap, MessageSquare, Brain } from "lucide-react"
-import Link from "next/link"
+import { useState } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Phone, MapPin, Heart, Car, Home, Zap, MessageSquare, Brain } from 'lucide-react'
 
-export function QuickActions() {
+interface QuickActionsProps {
+  userLocation: { lat: number; lng: number } | null
+  onEmergencyTypeSelect: (type: string) => void
+}
+
+export function QuickActions({ userLocation, onEmergencyTypeSelect }: QuickActionsProps) {
+  const [statusMessage, setStatusMessage] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+
+  const shareLocation = async () => {
+    setIsSharing(true)
+    setStatusMessage('')
+
+    try {
+      const location = userLocation ?? await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Location is not available in this browser.'))
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+          () => reject(new Error('Allow location access to share your coordinates.')),
+          { timeout: 10000, enableHighAccuracy: true, maximumAge: 300000 },
+        )
+      })
+      const mapUrl = `https://maps.google.com/?q=${location.lat},${location.lng}`
+      const text = `My SafeNet location: ${mapUrl}`
+
+      if (navigator.share) {
+        await navigator.share({ title: 'SafeNet location', text })
+        setStatusMessage('Location shared using your device share sheet.')
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        setStatusMessage('Location link copied to the clipboard.')
+      } else {
+        throw new Error('This browser cannot share or copy the location link.')
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setStatusMessage(error instanceof Error ? error.message : 'Location could not be shared.')
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
   const quickActions = [
-    {
-      icon: Phone,
-      title: "Call 911",
-      description: "Direct emergency call",
-      action: () => window.open("tel:911"),
-      variant: "destructive" as const,
-    },
-    {
-      icon: Heart,
-      title: "Medical Emergency",
-      description: "Health-related SOS",
-      action: () => console.log("Medical emergency triggered"),
-      variant: "secondary" as const,
-    },
-    {
-      icon: Car,
-      title: "Road Accident",
-      description: "Vehicle emergency",
-      action: () => console.log("Road accident reported"),
-      variant: "outline" as const,
-    },
-    {
-      icon: Home,
-      title: "Home Emergency",
-      description: "Fire, break-in, etc.",
-      action: () => console.log("Home emergency triggered"),
-      variant: "outline" as const,
-    },
-    {
-      icon: Zap,
-      title: "Natural Disaster",
-      description: "Weather emergency",
-      action: () => console.log("Natural disaster reported"),
-      variant: "outline" as const,
-    },
-    {
-      icon: MapPin,
-      title: "Share Location",
-      description: "Send GPS to contacts",
-      action: () => console.log("Location shared"),
-      variant: "outline" as const,
-    },
+    { icon: Phone, title: 'Call 911 (US)', description: 'Opens your phone app', kind: 'call', variant: 'destructive' as const },
+    { icon: Heart, title: 'Medical Emergency', description: 'Select a medical SOS', kind: 'emergency', emergencyType: 'Medical Emergency', variant: 'secondary' as const },
+    { icon: Car, title: 'Road Accident', description: 'Select an accident SOS', kind: 'emergency', emergencyType: 'Road Accident', variant: 'outline' as const },
+    { icon: Home, title: 'Home Emergency', description: 'Select a home emergency SOS', kind: 'emergency', emergencyType: 'Home Emergency', variant: 'outline' as const },
+    { icon: Zap, title: 'Natural Disaster', description: 'Select a disaster SOS', kind: 'emergency', emergencyType: 'Natural Disaster', variant: 'outline' as const },
+    { icon: MapPin, title: 'Share Location', description: 'Share or copy your GPS link', kind: 'share', variant: 'outline' as const },
   ]
 
   const navigationActions = [
-    {
-      icon: MessageSquare,
-      title: "Communication Center",
-      description: "SMS & emergency contacts",
-      href: "/communication",
-      variant: "outline" as const,
-    },
-    {
-      icon: MapPin,
-      title: "Maps & Alerts",
-      description: "Emergency resources & disasters",
-      href: "/maps",
-      variant: "outline" as const,
-    },
-    {
-      icon: Brain,
-      title: "AI Demo Center",
-      description: "Test AI classification",
-      href: "/ai-demo",
-      variant: "outline" as const,
-    },
+    { icon: MessageSquare, title: 'Communication Center', description: 'SMS & emergency contacts', href: '/communication' },
+    { icon: MapPin, title: 'Maps & Alerts', description: 'Emergency resources & disasters', href: '/maps' },
+    { icon: Brain, title: 'AI Demo Center', description: 'Explore the AI demonstration', href: '/ai-demo' },
   ]
 
   return (
@@ -80,52 +72,67 @@ export function QuickActions() {
       <Card>
         <CardHeader>
           <CardTitle>Quick Emergency Actions</CardTitle>
-          <CardDescription>Instant access to common emergency scenarios</CardDescription>
+          <CardDescription>Select an incident type or open the phone app. Selecting a type does not send an alert.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {quickActions.map((action, index) => (
+            {quickActions.map((action) => (
               <Button
-                key={index}
+                key={action.title}
+                type="button"
                 variant={action.variant}
-                className="h-auto p-4 flex flex-col items-start gap-2 text-left"
-                onClick={action.action}
+                className="h-auto flex flex-col items-start gap-2 p-4 text-left"
+                disabled={action.kind === 'share' && isSharing}
+                onClick={() => {
+                  if (action.kind === 'call') {
+                    window.location.href = 'tel:911'
+                    return
+                  }
+                  if (action.kind === 'share') {
+                    void shareLocation()
+                    return
+                  }
+                  onEmergencyTypeSelect(action.emergencyType ?? 'General Emergency')
+                  setStatusMessage(`${action.emergencyType} selected. Hold the SOS button to send an alert to your saved contacts.`)
+                }}
               >
-                <div className="flex items-center gap-2 w-full">
-                  <action.icon className="w-5 h-5 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-sm">{action.title}</div>
-                    <div className="text-xs opacity-70 text-pretty">{action.description}</div>
-                  </div>
-                </div>
+                <span className="flex w-full items-center gap-2">
+                  <action.icon aria-hidden="true" className="size-5 shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium">{action.kind === 'share' && isSharing ? 'Sharing…' : action.title}</span>
+                    <span className="block text-pretty text-xs opacity-70">{action.description}</span>
+                  </span>
+                </span>
               </Button>
             ))}
           </div>
+          {statusMessage && (
+            <Alert role="status" className="border-primary/20 bg-primary/5">
+              <AlertDescription>{statusMessage}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>SafeNet Features</CardTitle>
-          <CardDescription>Explore advanced emergency response capabilities</CardDescription>
+          <CardDescription>Open additional safety tools.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
-            {navigationActions.map((action, index) => (
-              <Link key={index} href={action.href}>
-                <Button
-                  variant={action.variant}
-                  className="h-auto p-4 flex flex-col items-start gap-2 text-left w-full"
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <action.icon className="w-5 h-5 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm">{action.title}</div>
-                      <div className="text-xs opacity-70 text-pretty">{action.description}</div>
-                    </div>
-                  </div>
-                </Button>
-              </Link>
+            {navigationActions.map((action) => (
+              <Button key={action.href} asChild variant="outline" className="h-auto w-full p-4 text-left">
+                <Link href={action.href} className="flex flex-col items-start gap-2">
+                  <span className="flex w-full items-center gap-2">
+                    <action.icon aria-hidden="true" className="size-5 shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium">{action.title}</span>
+                      <span className="block text-pretty text-xs opacity-70">{action.description}</span>
+                    </span>
+                  </span>
+                </Link>
+              </Button>
             ))}
           </div>
         </CardContent>

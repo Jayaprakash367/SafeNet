@@ -1,144 +1,192 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from 'next/server'
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 
 interface DisasterAlert {
   id: string
-  type: "weather" | "earthquake" | "flood" | "fire" | "storm" | "heat" | "other"
-  severity: "minor" | "moderate" | "severe" | "extreme"
+  type: 'weather' | 'earthquake' | 'flood' | 'fire' | 'storm' | 'heat' | 'other'
+  severity: 'minor' | 'moderate' | 'severe' | 'extreme'
   title: string
   description: string
   area: string
   issuedAt: number
   expiresAt: number
   source: string
+  sourceUrl: string
   actionRequired: boolean
   instructions: string[]
   affectedRadius: number
   coordinates: { lat: number; lng: number }
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const latitude = Number.parseFloat(searchParams.get("lat") || "0")
-    const longitude = Number.parseFloat(searchParams.get("lng") || "0")
-    const radius = Number.parseInt(searchParams.get("radius") || "50")
+interface NWSFeature {
+  id?: string
+  properties?: Record<string, unknown>
+}
 
-    // Simulate fetching from government APIs (NWS, USGS, etc.)
-    const alerts = await fetchDisasterAlerts(latitude, longitude, radius)
+interface USGSFeature {
+  id?: string
+  properties?: Record<string, unknown>
+  geometry?: { coordinates?: unknown }
+}
 
-    return NextResponse.json(
-      {
-        location: { latitude, longitude },
-        radius,
-        count: alerts.length,
-        alerts,
-        lastUpdated: Date.now(),
-      },
-      { status: 200 },
-    )
-  } catch (error) {
-    console.error("Disaster alerts error:", error)
-    return NextResponse.json({ error: "Failed to fetch disaster alerts" }, { status: 500 })
+function isValidCoordinate(value: number, min: number, max: number) {
+  return Number.isFinite(value) && value >= min && value <= max
+}
+
+function stringValue(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback
+}
+
+function timestamp(value: unknown, fallback: number) {
+  if (typeof value !== 'string') return fallback
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function mapSeverity(value: unknown): DisasterAlert['severity'] {
+  switch (value) {
+    case 'Extreme': return 'extreme'
+    case 'Severe': return 'severe'
+    case 'Moderate': return 'moderate'
+    case 'Minor': return 'minor'
+    default: return 'minor'
   }
 }
 
-async function fetchDisasterAlerts(lat: number, lng: number, radius: number): Promise<DisasterAlert[]> {
-  // Simulate API processing time
-  await new Promise((resolve) => setTimeout(resolve, 1200))
-
-  const now = Date.now()
-
-  // Mock alerts based on location and current conditions
-  const mockAlerts: DisasterAlert[] = [
-    {
-      id: `weather_${now}_1`,
-      type: "weather",
-      severity: "moderate",
-      title: "Severe Thunderstorm Warning",
-      description:
-        "Severe thunderstorms with heavy rain, lightning, and possible hail expected in the area. Wind gusts up to 60 mph possible.",
-      area: "New York City Metropolitan Area",
-      issuedAt: now - 2 * 60 * 60 * 1000, // 2 hours ago
-      expiresAt: now + 6 * 60 * 60 * 1000, // 6 hours from now
-      source: "National Weather Service",
-      actionRequired: true,
-      instructions: [
-        "Stay indoors and away from windows",
-        "Avoid using electrical appliances during the storm",
-        "Do not go outside during severe weather",
-        "Keep emergency supplies and flashlights ready",
-        "Monitor local news for updates",
-      ],
-      affectedRadius: 75,
-      coordinates: { lat: lat + 0.01, lng: lng + 0.01 },
-    },
-    {
-      id: `flood_${now}_2`,
-      type: "flood",
-      severity: "severe",
-      title: "Flash Flood Watch",
-      description:
-        "Heavy rainfall may cause flash flooding in low-lying areas, urban areas, and near waterways. Up to 3 inches of rain expected.",
-      area: "Manhattan and Brooklyn",
-      issuedAt: now - 1 * 60 * 60 * 1000, // 1 hour ago
-      expiresAt: now + 12 * 60 * 60 * 1000, // 12 hours from now
-      source: "National Weather Service",
-      actionRequired: true,
-      instructions: [
-        "Avoid driving through flooded roads - Turn Around, Don't Drown",
-        "Move to higher ground if in low-lying areas",
-        "Stay away from storm drains and waterways",
-        "Have evacuation plan ready if needed",
-        "Keep important documents in waterproof container",
-      ],
-      affectedRadius: 50,
-      coordinates: { lat: lat - 0.02, lng: lng - 0.01 },
-    },
-    {
-      id: `heat_${now}_3`,
-      type: "heat",
-      severity: "minor",
-      title: "Heat Advisory",
-      description:
-        "Temperatures expected to reach dangerous levels. Heat index may exceed 100°F (38°C) during afternoon hours.",
-      area: "Tri-State Area",
-      issuedAt: now - 30 * 60 * 1000, // 30 minutes ago
-      expiresAt: now + 24 * 60 * 60 * 1000, // 24 hours from now
-      source: "National Weather Service",
-      actionRequired: false,
-      instructions: [
-        "Stay hydrated and drink plenty of water",
-        "Limit outdoor activities during peak hours (11 AM - 4 PM)",
-        "Check on elderly neighbors and relatives",
-        "Never leave children or pets in vehicles",
-        "Seek air-conditioned spaces during hottest part of day",
-      ],
-      affectedRadius: 100,
-      coordinates: { lat, lng },
-    },
-  ]
-
-  // Filter alerts by proximity (within radius)
-  const relevantAlerts = mockAlerts.filter((alert) => {
-    const distance = calculateDistance(lat, lng, alert.coordinates.lat, alert.coordinates.lng)
-    return distance <= radius
-  })
-
-  // Filter out expired alerts
-  const activeAlerts = relevantAlerts.filter((alert) => alert.expiresAt > now)
-
-  return activeAlerts
+function mapType(event: string): DisasterAlert['type'] {
+  const name = event.toLowerCase()
+  if (name.includes('earthquake')) return 'earthquake'
+  if (name.includes('flood')) return 'flood'
+  if (name.includes('fire')) return 'fire'
+  if (name.includes('heat')) return 'heat'
+  if (name.includes('wind') || name.includes('hurricane') || name.includes('tornado')) return 'storm'
+  if (name.includes('weather') || name.includes('thunderstorm') || name.includes('snow')) return 'weather'
+  return 'other'
 }
 
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371 // Earth's radius in kilometers
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
+async function fetchNWSAlerts(latitude: number, longitude: number, radius: number): Promise<DisasterAlert[]> {
+  const url = new URL('https://api.weather.gov/alerts/active')
+  url.searchParams.set('point', `${latitude},${longitude}`)
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/geo+json, application/json;q=0.9',
+      'User-Agent': 'SafeNet/1.0 emergency-information-dashboard',
+    },
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!response.ok) throw new Error(`NWS request failed (${response.status})`)
+
+  const data = (await response.json()) as { features?: NWSFeature[] }
+  const now = Date.now()
+  return (data.features ?? []).flatMap((feature) => {
+    const properties = feature.properties ?? {}
+    const event = stringValue(properties.event, 'Weather alert')
+    const severity = mapSeverity(properties.severity)
+    const instructions = stringValue(properties.instruction)
+      .split(/\r?\n+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 6)
+    const url = stringValue(properties.web, feature.id ?? '')
+    if (!url) return []
+
+    return [{
+      id: feature.id ?? url,
+      type: mapType(event),
+      severity,
+      title: stringValue(properties.headline, event),
+      description: stringValue(properties.description, event),
+      area: stringValue(properties.areaDesc, 'Area not specified'),
+      issuedAt: timestamp(properties.sent, now),
+      expiresAt: timestamp(properties.expires, now + 60 * 60 * 1000),
+      source: 'National Weather Service',
+      sourceUrl: url,
+      actionRequired: severity === 'extreme' || severity === 'severe',
+      instructions,
+      affectedRadius: radius,
+      coordinates: { lat: latitude, lng: longitude },
+    }]
+  })
+}
+
+async function fetchUSGSEarthquakes(latitude: number, longitude: number, radius: number): Promise<DisasterAlert[]> {
+  const url = new URL('https://earthquake.usgs.gov/fdsnws/event/1/query')
+  url.searchParams.set('format', 'geojson')
+  url.searchParams.set('starttime', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+  url.searchParams.set('latitude', String(latitude))
+  url.searchParams.set('longitude', String(longitude))
+  url.searchParams.set('maxradiuskm', String(radius))
+  url.searchParams.set('minmagnitude', '4.0')
+  url.searchParams.set('orderby', 'time')
+  url.searchParams.set('limit', '50')
+
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: { Accept: 'application/geo+json, application/json;q=0.9' },
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!response.ok) throw new Error(`USGS request failed (${response.status})`)
+
+  const data = (await response.json()) as { features?: USGSFeature[] }
+  const now = Date.now()
+  return (data.features ?? []).flatMap((feature) => {
+    const properties = feature.properties ?? {}
+    const coordinates = feature.geometry?.coordinates
+    if (!Array.isArray(coordinates) || typeof coordinates[0] !== 'number' || typeof coordinates[1] !== 'number') return []
+    const magnitude = typeof properties.mag === 'number' ? properties.mag : 0
+    const url = stringValue(properties.url)
+    if (!url) return []
+    const severity: DisasterAlert['severity'] = magnitude >= 6 ? 'severe' : magnitude >= 5 ? 'moderate' : 'minor'
+    const issuedAt = typeof properties.time === 'number' ? properties.time : now
+    const place = stringValue(properties.place, 'Location not specified')
+
+    return [{
+      id: `usgs-${feature.id ?? url}`,
+      type: 'earthquake',
+      severity,
+      title: `Magnitude ${magnitude.toFixed(1)} earthquake`,
+      description: `A magnitude ${magnitude.toFixed(1)} earthquake was recorded near ${place}.`,
+      area: place,
+      issuedAt,
+      expiresAt: issuedAt + 24 * 60 * 60 * 1000,
+      source: 'USGS',
+      sourceUrl: url,
+      actionRequired: magnitude >= 6,
+      instructions: magnitude >= 5 ? ['Check local authorities for official guidance and aftershock information.'] : [],
+      affectedRadius: radius,
+      coordinates: { lat: coordinates[1], lng: coordinates[0] },
+    }]
+  })
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const latitude = Number(searchParams.get('lat'))
+  const longitude = Number(searchParams.get('lng'))
+  const radiusValue = Number(searchParams.get('radius') ?? '50')
+  const radius = Number.isFinite(radiusValue) ? Math.max(1, Math.min(100, Math.round(radiusValue))) : 50
+
+  if (!isValidCoordinate(latitude, -90, 90) || !isValidCoordinate(longitude, -180, 180)) {
+    return NextResponse.json({ error: 'Valid latitude and longitude are required.' }, { status: 400 })
+  }
+
+  const results = await Promise.allSettled([
+    fetchNWSAlerts(latitude, longitude, radius),
+    fetchUSGSEarthquakes(latitude, longitude, radius),
+  ])
+  const successful = results.filter((result): result is PromiseFulfilledResult<DisasterAlert[]> => result.status === 'fulfilled')
+  if (successful.length === 0) {
+    console.error('[v0] Disaster alert providers were unavailable')
+    return NextResponse.json({ error: 'Official disaster alert sources are temporarily unavailable.' }, { status: 502 })
+  }
+
+  const alerts = successful.flatMap((result) => result.value).filter((alert) => alert.expiresAt > Date.now())
+    .sort((a, b) => b.issuedAt - a.issuedAt)
+
+  return NextResponse.json(
+    { location: { latitude, longitude }, radius, count: alerts.length, alerts, lastUpdated: Date.now() },
+    { headers: { 'Cache-Control': 'no-store' } },
+  )
 }

@@ -70,7 +70,9 @@ async function sendEmergencyContactSms(
   const accountSid = process.env.TWILIO_SID
   const authToken = process.env.TWILIO_TOKEN
   const fromNumber = process.env.TWILIO_PHONE_NUMBER
-  const contacts = profile.emergencyContacts.filter((phone) => e164PhonePattern.test(phone))
+  const contacts = profile.emergencyContacts
+    .map((phone) => phone.replace(/[\s()-]/g, ''))
+    .filter((phone) => e164PhonePattern.test(phone))
 
   if (!accountSid || !authToken || !fromNumber || contacts.length === 0) {
     return 0
@@ -136,12 +138,12 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError && authError.name !== 'AuthSessionMissingError') {
-      console.error('[v0] SOS guest session validation failed:', authError.code ?? authError.name)
-      return NextResponse.json({ error: 'Your private profile session is temporarily unavailable.' }, { status: 503 })
+      console.error('[v0] SOS account session validation failed:', authError.code ?? authError.name)
+      return NextResponse.json({ error: 'Your account session is temporarily unavailable.' }, { status: 503 })
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'Create a profile before sending an SOS alert.' }, { status: 401 })
+      return NextResponse.json({ error: 'Sign in before sending an SOS alert.' }, { status: 401 })
     }
 
     const { data: profileRow, error: profileError } = await supabase

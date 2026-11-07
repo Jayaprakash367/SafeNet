@@ -34,18 +34,10 @@ export function isEmergencyProfileComplete(profile: EmergencyProfileData) {
     profile.name.trim() &&
       profile.age.trim() &&
       profile.bloodGroup &&
-      profile.emergencyContact1.trim(),
+      /^\+[1-9]\d{7,14}$/.test(profile.emergencyContact1.replace(/[\s()-]/g, '')),
   )
 }
 
-export function isAnonymousSignInDisabled(error: unknown) {
-  return Boolean(
-    error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === 'anonymous_provider_disabled',
-  )
-}
 
 interface ProfileRow {
   full_name: string | null
@@ -64,51 +56,40 @@ interface EmergencyProfileSnapshot {
   profile: EmergencyProfileData
 }
 
-const GUEST_USER_KEY = 'safenet/guest-user'
+const AUTH_USER_KEY = 'safenet/auth-user'
 const PROFILE_CACHE_KEY = 'safenet/emergency-profile'
 const PROFILE_COLUMNS =
   'full_name, age, blood_group, medical_conditions, emergency_contact1, emergency_contact2, address, allergies, medications'
 
-async function loadGuestUser(): Promise<User> {
+async function loadCurrentUser(): Promise<User | null> {
   const supabase = createClient()
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser()
 
-  if (user) {
+  if (!error) {
     return user
   }
 
   const missingSession =
-    !error ||
     error.name === 'AuthSessionMissingError' ||
     error.status === 400 ||
     error.status === 401 ||
     error.status === 403
 
-  if (error && !missingSession) {
-    throw error
+  if (missingSession) {
+    return null
   }
 
-  const { data, error: guestError } = await supabase.auth.signInAnonymously()
-
-  if (guestError) {
-    throw guestError
-  }
-
-  if (!data.user) {
-    throw new Error('A private profile session could not be created.')
-  }
-
-  return data.user
+  throw error
 }
 
-export function useGuestUser() {
+export function useAuthUser() {
   const supabase = typeof window === 'undefined' ? null : createClient()
-  const { data, error, isLoading, mutate } = useSWR<User>(
-    supabase ? GUEST_USER_KEY : null,
-    loadGuestUser,
+  const { data, error, isLoading, mutate } = useSWR<User | null>(
+    supabase ? AUTH_USER_KEY : null,
+    loadCurrentUser,
     {
       revalidateOnFocus: true,
       shouldRetryOnError: false,
@@ -193,6 +174,17 @@ export function useEmergencyProfile(userId: string) {
       throw new Error('Enter an age between 0 and 120.')
     }
 
+    const normalizePhone = (value: string) => value.replace(/[\s()-]/g, '')
+    const emergencyContact1 = normalizePhone(profile.emergencyContact1.trim())
+    const emergencyContact2 = normalizePhone(profile.emergencyContact2.trim())
+    const e164PhonePattern = /^\+[1-9]\d{7,14}$/
+    if (!e164PhonePattern.test(emergencyContact1)) {
+      throw new Error('Enter the first emergency contact in international format, such as +14155550123.')
+    }
+    if (emergencyContact2 && !e164PhonePattern.test(emergencyContact2)) {
+      throw new Error('Enter the second emergency contact in international format, such as +14155550123.')
+    }
+
     const bloodGroup = profile.bloodGroup.trim()
     const allowedBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
     if (bloodGroup && !allowedBloodGroups.includes(bloodGroup)) {
@@ -204,8 +196,8 @@ export function useEmergencyProfile(userId: string) {
       age: age === null ? '' : String(age),
       bloodGroup,
       medicalConditions: profile.medicalConditions.trim().slice(0, 2000),
-      emergencyContact1: profile.emergencyContact1.trim().slice(0, 40),
-      emergencyContact2: profile.emergencyContact2.trim().slice(0, 40),
+      emergencyContact1: emergencyContact1.slice(0, 16),
+      emergencyContact2: emergencyContact2.slice(0, 16),
       address: profile.address.trim().slice(0, 1000),
       allergies: profile.allergies.trim().slice(0, 2000),
       medications: profile.medications.trim().slice(0, 2000),
@@ -229,7 +221,7 @@ export function useEmergencyProfile(userId: string) {
         blood_group: bloodGroup || null,
         medical_conditions: normalizedProfile.medicalConditions,
         emergency_contact1: normalizedProfile.emergencyContact1,
-        emergency_contact2: normalizedProfile.emergencyContact2,
+        emergency_contact2: normalizedProfile.emergencyContact2 || null,
         address: normalizedProfile.address,
         allergies: normalizedProfile.allergies,
         medications: normalizedProfile.medications,

@@ -6,16 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface TestSMSButtonProps {
-  disabled?: boolean
-  disabledMessage?: string
+  canSend: boolean
+  accessMessage: string
+  onAccessRequired: () => void
 }
 
-export function TestSMSButton({ disabled = false, disabledMessage }: TestSMSButtonProps) {
+export function TestSMSButton({ canSend, accessMessage, onAccessRequired }: TestSMSButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const sendTestSMS = async () => {
-    if (disabled || isLoading) return
+    if (!canSend) {
+      onAccessRequired()
+      return
+    }
+    if (isLoading) return
 
     setIsLoading(true)
     setResult(null)
@@ -47,13 +52,13 @@ export function TestSMSButton({ disabled = false, disabledMessage }: TestSMSButt
           Test SMS Delivery
         </CardTitle>
         <CardDescription>
-          {disabled
-            ? disabledMessage ?? 'A private emergency profile is required to send a test message.'
-            : 'Sends a real test message to the first emergency contact saved in your profile.'}
+          {canSend
+            ? 'Sends a real test message to the first emergency contact saved in your profile.'
+            : accessMessage}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Button onClick={sendTestSMS} disabled={disabled || isLoading} className="w-full whitespace-normal" size="lg">
+        <Button onClick={sendTestSMS} disabled={isLoading} className="w-full whitespace-normal" size="lg">
           {isLoading ? (
             <>
               <Loader2 aria-hidden="true" className="animate-spin" data-icon="inline-start" />
