@@ -1,72 +1,105 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-export async function POST(request: NextRequest) {
+const e164PhonePattern = /^\+[1-9]\d{7,14}$/
+
+export async function POST() {
   try {
-    const { phoneNumber } = await request.json()
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-    console.log("[v0] Test SMS request for:", phoneNumber)
-
-    // Twilio configuration
-    const accountSid = process.env.TWILIO_SID
-    const authToken = process.env.TWILIO_TOKEN
-    const twilioPhone = process.env.TWILIO_PHONE_NUMBER
-
-    if (!accountSid || !authToken || !twilioPhone) {
-      console.log("[v0] Missing Twilio credentials")
-      return NextResponse.json({ error: "Twilio credentials not configured" }, { status: 500 })
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error('[v0] SMS test account authentication failed:', authError.code ?? authError.name)
+      return NextResponse.json(
+        { error: 'Your private profile session is temporarily unavailable.' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      )
     }
 
-    console.log("[v0] Twilio credentials present")
-    console.log("[v0] Sending test SMS to:", phoneNumber)
-    console.log("[v0] From number:", twilioPhone)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Sign in before testing SMS delivery.' },
+        { status: 401, headers: { 'Cache-Control': 'no-store' } },
+      )
+    }
 
-    // Send test SMS via Twilio
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, emergency_contact1')
+      .eq('id', user.id)
+      .maybeSingle()
 
-    const testMessage = `🧪 TEST MESSAGE from SafeNet SOS App
-    
-This is a test SMS to verify delivery to your phone number.
-    
-✅ If you receive this message, SMS delivery is working correctly!
-    
-Time: ${new Date().toLocaleString()}
-Phone: ${phoneNumber}
-From: SafeNet Emergency System`
+    if (profileError) {
+      console.error('[v0] SMS test profile lookup failed:', profileError.code ?? profileError.message)
+      return NextResponse.json(
+        { error: 'Could not load your saved emergency contact.' },
+        { status: 500, headers: { 'Cache-Control': 'no-store' } },
+      )
+    }
 
-    const response = await fetch(twilioUrl, {
-      method: "POST",
+    const phoneNumber =
+      typeof profile?.emergency_contact1 === 'string'
+        ? profile.emergency_contact1.replace(/[\s()-]/g, '')
+        : ''
+
+    if (!phoneNumber || !e164PhonePattern.test(phoneNumber)) {
+      return NextResponse.json(
+        { error: 'Add a valid international-format phone number as your first emergency contact.' },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
+      )
+    }
+
+    const accountSid = process.env.TWILIO_SID
+    const authToken = process.env.TWILIO_TOKEN
+    const fromNumber = process.env.TWILIO_PHONE_NUMBER
+
+    if (!accountSid || !authToken || !fromNumber) {
+      return NextResponse.json(
+        { error: 'SMS delivery is not configured.' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      )
+    }
+
+    const name =
+      typeof profile?.full_name === 'string' && profile.full_name.trim()
+        ? profile.full_name.trim().slice(0, 120)
+        : 'your SafeNet profile'
+    const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
+    const authorization = `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`
+    const response = await fetch(endpoint, {
+      method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: authorization,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         To: phoneNumber,
-        From: twilioPhone,
-        Body: testMessage,
+        From: fromNumber,
+        Body: `SafeNet SMS delivery test for ${name}. You requested this test from your profile.`,
       }),
+      signal: AbortSignal.timeout(10_000),
     })
 
-    const result = await response.json()
-    console.log("[v0] Twilio response status:", response.status)
-    console.log("[v0] Twilio response:", result)
-
-    if (response.ok) {
-      return NextResponse.json({
-        success: true,
-        message: "Test SMS sent successfully!",
-        twilioResponse: result,
-      })
-    } else {
+    if (!response.ok) {
+      console.error('[v0] Twilio rejected the SMS delivery test:', response.status)
       return NextResponse.json(
-        {
-          error: "Failed to send test SMS",
-          details: result,
-        },
-        { status: 400 },
+        { error: 'The SMS could not be submitted. Check the saved contact and SMS account configuration.' },
+        { status: 502, headers: { 'Cache-Control': 'no-store' } },
       )
     }
+
+    return NextResponse.json(
+      { success: true, message: 'Test SMS submitted to your saved emergency contact.' },
+      { status: 200, headers: { 'Cache-Control': 'no-store' } },
+    )
   } catch (error) {
-    console.error("[v0] Test SMS error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error('[v0] SMS delivery test failed:', error instanceof Error ? error.name : 'UnknownError')
+    return NextResponse.json(
+      { error: 'The SMS test could not be completed. Please try again.' },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
+    )
   }
 }

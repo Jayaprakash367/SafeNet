@@ -1,18 +1,16 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import Script from "next/script"
 import { Suspense } from "react"
 import "./globals.css"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 
 export const metadata: Metadata = {
-  title: "SafeNet - Enterprise Emergency Response System",
-  description: "Professional disaster management and emergency response coordination platform trusted by government agencies and emergency services",
+  title: "SafeNet — Emergency Response Dashboard",
+  description: "A fast, accessible safety dashboard for SOS alerts, private emergency profiles, location sharing, and live disaster information.",
   keywords: "disaster management, emergency response, SOS alert, GPS tracking, emergency coordination, crisis management",
   generator: "SafeNet v1.0",
   manifest: "/manifest.json",
-  themeColor: "#c41e3a",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -33,6 +31,12 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-capable": "yes",
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#e63946',
 }
 
 export default function RootLayout({

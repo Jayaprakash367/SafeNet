@@ -1,20 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { AlertTriangle, CheckCircle, MessageSquare, Phone, Send, Wifi, WifiOff } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MessageSquare, Send, Phone, CheckCircle, AlertTriangle, Wifi, WifiOff } from "lucide-react"
+import { useAuthUser, useEmergencyProfile } from "@/lib/supabase/hooks"
 
 interface SMSMessage {
   id: string
   to: string
   message: string
   timestamp: number
-  status: "pending" | "sent" | "delivered" | "failed"
+  status: "preview"
   type: "sos" | "update" | "test"
 }
 
@@ -25,143 +26,83 @@ interface EmergencyContact {
 }
 
 export function SMSCommunication() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const { user, isLoading: isAuthLoading, error: authError } = useAuthUser()
+  const [hasMounted, setHasMounted] = useState(false)
+  const isAuthReady = hasMounted && !isAuthLoading
+  const activeUser = isAuthReady ? user : null
+  const { profile, isLoading: isProfileLoading, error: profileError } = useEmergencyProfile(activeUser?.id ?? "")
+  const [isOnline, setIsOnline] = useState(true)
   const [messages, setMessages] = useState<SMSMessage[]>([])
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
-    { name: "John Doe", phone: "+1-555-0123", relationship: "Spouse" },
-    { name: "Jane Smith", phone: "+1-555-0456", relationship: "Emergency Contact" },
-  ])
   const [customMessage, setCustomMessage] = useState("")
-  const [isSending, setIsSending] = useState(false)
+
+  const emergencyContacts = useMemo<EmergencyContact[]>(() => {
+    const contacts: EmergencyContact[] = []
+
+    if (profile.emergencyContact1) {
+      contacts.push({ name: "Emergency contact 1", phone: profile.emergencyContact1, relationship: "Saved in profile" })
+    }
+    if (profile.emergencyContact2) {
+      contacts.push({ name: "Emergency contact 2", phone: profile.emergencyContact2, relationship: "Saved in profile" })
+    }
+
+    return contacts
+  }, [profile.emergencyContact1, profile.emergencyContact2])
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
+    setHasMounted(true)
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine)
+    updateOnlineStatus()
+    window.addEventListener("online", updateOnlineStatus)
+    window.addEventListener("offline", updateOnlineStatus)
 
     return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
+      window.removeEventListener("online", updateOnlineStatus)
+      window.removeEventListener("offline", updateOnlineStatus)
     }
   }, [])
 
-  const generateSOSMessage = (userProfile?: any, location?: { lat: number; lng: number }) => {
-    const profile = userProfile || JSON.parse(localStorage.getItem("safenet-profile") || "{}")
-    const coords = location || { lat: 40.7128, lng: -74.006 } // Default to NYC
+  const generateSOSMessage = () => `SafeNet SOS message preview
+Name: ${profile.name || "Not provided"}
+Age: ${profile.age || "Not provided"}
+Blood group: ${profile.bloodGroup || "Not provided"}
+Medical conditions: ${profile.medicalConditions || "Not provided"}
 
-    return `🚨 SOS ALERT 🚨
-Name: ${profile.name || "Unknown"}
-Age: ${profile.age || "Unknown"}
-Location: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}
-Blood Group: ${profile.bloodGroup || "Unknown"}
-Emergency: Medical assistance needed
-Time: ${new Date().toLocaleString()}
-Google Maps: https://maps.google.com/?q=${coords.lat},${coords.lng}
+This is a preview only. Use the SOS control on the dashboard to save an alert.`
 
-This is an automated SafeNet emergency alert. Please contact emergency services if you receive this message.`
-  }
-
-  const sendSMS = async (phoneNumber: string, message: string, type: SMSMessage["type"] = "sos") => {
-    const newMessage: SMSMessage = {
-      id: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  const previewMessage = (phoneNumber: string, message: string, type: SMSMessage["type"] = "sos") => {
+    const preview: SMSMessage = {
+      id: `preview_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       to: phoneNumber,
       message,
       timestamp: Date.now(),
-      status: "pending",
+      status: "preview",
       type,
     }
 
-    setMessages((prev) => [newMessage, ...prev])
+    setMessages((previous) => [preview, ...previous])
+  }
 
-    // Simulate SMS sending
-    try {
-      setIsSending(true)
-      await new Promise((resolve) => setTimeout(resolve, 2000)) // Simulate network delay
-
-      // In a real app, this would call Twilio or Fast2SMS API
-      console.log("Sending SMS:", {
-        to: phoneNumber,
-        body: message,
-        from: "SafeNet Emergency System",
-      })
-
-      // Simulate success/failure
-      const success = Math.random() > 0.1 // 90% success rate
-
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: success ? "sent" : "failed" } : msg)),
-      )
-
-      // Simulate delivery confirmation after a delay
-      if (success) {
-        setTimeout(() => {
-          setMessages((prev) => prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg)))
-        }, 3000)
-      }
-    } catch (error) {
-      console.error("SMS sending failed:", error)
-      setMessages((prev) => prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: "failed" } : msg)))
-    } finally {
-      setIsSending(false)
+  const previewEmergencyMessage = () => {
+    for (const contact of emergencyContacts) {
+      previewMessage(contact.phone, generateSOSMessage(), "sos")
     }
   }
 
-  const sendEmergencySMS = async () => {
-    const sosMessage = generateSOSMessage()
-
-    // Send to all emergency contacts
-    for (const contact of emergencyContacts) {
-      await sendSMS(contact.phone, sosMessage, "sos")
+  const previewCustomMessage = () => {
+    if (!customMessage.trim()) {
+      return
     }
-  }
-
-  const sendCustomSMS = async () => {
-    if (!customMessage.trim()) return
 
     for (const contact of emergencyContacts) {
-      await sendSMS(contact.phone, customMessage, "update")
+      previewMessage(contact.phone, customMessage.trim(), "update")
     }
     setCustomMessage("")
   }
 
-  const sendTestSMS = async () => {
-    const testMessage = `SafeNet Test Message
-This is a test of the SafeNet emergency SMS system.
-Time: ${new Date().toLocaleString()}
-If you receive this message, the system is working correctly.`
-
+  const previewTestMessage = () => {
+    const message = "SafeNet test message preview. No SMS is sent from this screen."
     for (const contact of emergencyContacts) {
-      await sendSMS(contact.phone, testMessage, "test")
-    }
-  }
-
-  const getStatusIcon = (status: SMSMessage["status"]) => {
-    switch (status) {
-      case "pending":
-        return <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-      case "sent":
-        return <div className="w-2 h-2 bg-blue-500 rounded-full" />
-      case "delivered":
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case "failed":
-        return <AlertTriangle className="w-4 h-4 text-red-500" />
-    }
-  }
-
-  const getStatusColor = (status: SMSMessage["status"]) => {
-    switch (status) {
-      case "pending":
-        return "text-yellow-600"
-      case "sent":
-        return "text-blue-600"
-      case "delivered":
-        return "text-green-600"
-      case "failed":
-        return "text-red-600"
-      default:
-        return "text-muted-foreground"
+      previewMessage(contact.phone, message, "test")
     }
   }
 
@@ -173,138 +114,152 @@ If you receive this message, the system is working correctly.`
         return "secondary"
       case "test":
         return "outline"
-      default:
-        return "outline"
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
+            <MessageSquare aria-hidden="true" className="size-5 text-primary" />
             <CardTitle>SMS Communication</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={isOnline ? "default" : "destructive"} className="flex items-center gap-1">
-              {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {isOnline ? "Online" : "Offline"}
-            </Badge>
-          </div>
+          <Badge variant={isOnline ? "default" : "destructive"} className="flex items-center gap-1">
+            {isOnline ? <Wifi aria-hidden="true" className="size-3" /> : <WifiOff aria-hidden="true" className="size-3" />}
+            {isOnline ? "Online" : "Offline"}
+          </Badge>
         </div>
-        <CardDescription>Emergency SMS system with offline capability for critical situations</CardDescription>
+        <CardDescription>
+          Emergency contacts load from your saved profile. Messages shown here are previews and are not sent.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Connection Status */}
+      <CardContent className="flex flex-col gap-6">
         {!isOnline && (
           <Alert className="border-secondary bg-secondary/10">
-            <WifiOff className="h-4 w-4 text-secondary" />
+            <WifiOff aria-hidden="true" className="size-4 text-secondary" />
             <AlertDescription className="text-secondary">
-              <strong>Offline Mode:</strong> SMS will be sent when connection is restored. Emergency calls still work.
+              This preview is not queued for later delivery. Contact local emergency services directly if needed.
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Emergency Contacts */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-sm">Emergency Contacts</h4>
-          <div className="space-y-2">
-            {emergencyContacts.map((contact, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <div className="font-medium text-sm">{contact.name}</div>
-                  <div className="text-xs text-muted-foreground">{contact.relationship}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono">{contact.phone}</span>
-                  <Button size="sm" variant="outline" onClick={() => window.open(`tel:${contact.phone}`)}>
-                    <Phone className="w-3 h-3" />
-                  </Button>
-                </div>
+        {!isAuthReady && (
+          <p role="status" className="text-sm text-muted-foreground">Checking your SafeNet account...</p>
+        )}
+        {isAuthReady && activeUser && isProfileLoading && (
+          <p role="status" className="text-sm text-muted-foreground">Loading saved contacts...</p>
+        )}
+
+        {isAuthReady && authError && (
+          <Alert variant="destructive" role="alert">
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>Could not verify your account session. Refresh the page before viewing private contacts.</AlertDescription>
+          </Alert>
+        )}
+
+        {isAuthReady && !authError && !activeUser && (
+          <Alert>
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>Sign in or create an account to view your saved emergency contacts.</AlertDescription>
+          </Alert>
+        )}
+
+        {activeUser && profileError && (
+          <Alert variant="destructive" role="alert">
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>Could not load your private contacts. Refresh the page and try again.</AlertDescription>
+          </Alert>
+        )}
+
+        {activeUser && !isProfileLoading && !profileError && emergencyContacts.length === 0 && (
+          <Alert>
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            <AlertDescription>
+              Add emergency contacts in your dashboard profile before using communication features.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex flex-col gap-3">
+          <h4 className="text-sm font-medium">Emergency Contacts</h4>
+          {emergencyContacts.map((contact) => (
+            <div key={contact.phone} className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium">{contact.name}</div>
+                <div className="text-xs text-muted-foreground">{contact.relationship}</div>
               </div>
-            ))}
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="truncate font-mono text-sm">{contact.phone}</span>
+                <Button asChild size="sm" variant="outline">
+                  <a href={`tel:${encodeURIComponent(contact.phone)}`} aria-label={`Call ${contact.name}`}>
+                    <Phone aria-hidden="true" className="size-3" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-sm">Quick SMS Actions</h4>
+        <div className="flex flex-col gap-3">
+          <h4 className="text-sm font-medium">Message Previews</h4>
           <div className="grid gap-2 sm:grid-cols-3">
-            <Button
-              onClick={sendEmergencySMS}
-              variant="destructive"
-              className="flex items-center gap-2"
-              disabled={isSending}
-            >
-              <MessageSquare className="w-4 h-4" />
-              Send SOS
+            <Button onClick={previewEmergencyMessage} variant="destructive" disabled={!emergencyContacts.length}>
+              <MessageSquare aria-hidden="true" data-icon="inline-start" />
+              Preview SOS
             </Button>
-            <Button
-              onClick={sendTestSMS}
-              variant="outline"
-              className="flex items-center gap-2 bg-transparent"
-              disabled={isSending}
-            >
-              <CheckCircle className="w-4 h-4" />
-              Test SMS
+            <Button onClick={previewTestMessage} variant="outline" disabled={!emergencyContacts.length}>
+              <CheckCircle aria-hidden="true" data-icon="inline-start" />
+              Preview test
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-2 bg-transparent"
               onClick={() => setCustomMessage("I am safe and secure. No assistance needed.")}
+              disabled={!emergencyContacts.length}
             >
-              <MessageSquare className="w-4 h-4" />
-              Send "Safe"
+              <MessageSquare aria-hidden="true" data-icon="inline-start" />
+              Safe message
             </Button>
           </div>
         </div>
 
-        {/* Custom Message */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <Label htmlFor="custom-message" className="text-sm font-medium">
-            Custom Emergency Message
+            Custom Message Preview
           </Label>
           <Textarea
             id="custom-message"
             value={customMessage}
-            onChange={(e) => setCustomMessage(e.target.value)}
-            placeholder="Type a custom message to send to emergency contacts..."
+            onChange={(event) => setCustomMessage(event.target.value)}
+            maxLength={1000}
+            placeholder="Type a message to preview for your saved emergency contacts..."
             className="min-h-[80px]"
           />
-          <Button
-            onClick={sendCustomSMS}
-            disabled={!customMessage.trim() || isSending}
-            className="flex items-center gap-2"
-          >
-            <Send className="w-4 h-4" />
-            Send Custom Message
+          <Button onClick={previewCustomMessage} disabled={!customMessage.trim() || !emergencyContacts.length}>
+            <Send aria-hidden="true" data-icon="inline-start" />
+            Preview message
           </Button>
         </div>
 
-        {/* Message History */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-sm">Recent Messages</h4>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="flex flex-col gap-3">
+          <h4 className="text-sm font-medium">Recent Previews</h4>
+          <div className="max-h-64 flex flex-col gap-2 overflow-y-auto">
             {messages.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground text-sm">No messages sent yet</div>
+              <div className="py-4 text-center text-sm text-muted-foreground">No message previews yet</div>
             ) : (
               messages.map((message) => (
-                <div key={message.id} className="p-3 bg-muted rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div key={message.id} className="flex flex-col gap-2 rounded-lg bg-muted p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       <Badge variant={getTypeColor(message.type)} className="text-xs">
                         {message.type.toUpperCase()}
                       </Badge>
-                      <span className="text-sm font-medium">{message.to}</span>
+                      <span className="truncate text-sm font-medium">{message.to}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(message.status)}
-                      <span className={`text-xs ${getStatusColor(message.status)}`}>{message.status}</span>
-                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">Preview only</span>
                   </div>
                   <div className="text-xs text-muted-foreground">{new Date(message.timestamp).toLocaleString()}</div>
-                  <div className="text-sm bg-background p-2 rounded border text-pretty">
+                  <div className="rounded border bg-background p-2 text-sm text-pretty">
                     {message.message.length > 100 ? `${message.message.substring(0, 100)}...` : message.message}
                   </div>
                 </div>
@@ -313,12 +268,9 @@ If you receive this message, the system is working correctly.`
           </div>
         </div>
 
-        {/* SMS Information */}
-        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
-          <p>• SMS works even when internet is unavailable</p>
-          <p>• Messages include GPS coordinates and emergency profile</p>
-          <p>• Delivery confirmations help track message status</p>
-          <p>• Emergency contacts receive structured SOS alerts</p>
+        <div className="flex flex-col gap-1 border-t border-border pt-4 text-xs text-muted-foreground">
+          <p>Message previews are not sent from this panel.</p>
+          <p>Use the dashboard SOS action to save an alert and the test control to verify SMS delivery.</p>
         </div>
       </CardContent>
     </Card>

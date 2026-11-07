@@ -3,13 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Menu, X, Shield, Home, AlertCircle, Map, Users, Settings, LogOut } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Menu, X, Shield, Home, AlertCircle, Map, Users, Settings, UserRound } from 'lucide-react'
 
 export function EnterpriseNavigation() {
   const [isOpen, setIsOpen] = useState(false)
-  const router = useRouter()
-
   const navItems = [
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/alerts', label: 'Active Alerts', icon: AlertCircle },
@@ -17,12 +14,6 @@ export function EnterpriseNavigation() {
     { href: '/teams', label: 'Response Teams', icon: Users },
     { href: '/settings', label: 'Settings', icon: Settings },
   ]
-
-  const handleLogout = () => {
-    localStorage.removeItem('user')
-    localStorage.removeItem('userData')
-    router.push('/login')
-  }
 
   return (
     <nav className="bg-sidebar text-sidebar-foreground sticky top-0 z-50 shadow-md">
@@ -60,15 +51,16 @@ export function EnterpriseNavigation() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
-            <Button
-              onClick={handleLogout}
-              variant="ghost"
-              size="sm"
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-300 ease-out"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
+            <Link href="/profile" aria-label="Edit your profile">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-300 ease-out"
+              >
+                <UserRound aria-hidden="true" data-icon="inline-start" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
+            </Link>
 
             {/* Mobile Menu Button */}
             <button

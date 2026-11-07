@@ -1,302 +1,214 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-interface SOSRequest {
-  userId: string
-  location: {
-    latitude: number
-    longitude: number
-    accuracy?: number
-  } | null
-  profile: {
-    name: string
-    age: number | string
-    bloodGroup: string
-    medicalConditions: string[]
-    emergencyContacts: string[]
-  }
-  emergencyType: string
-  urgency: "critical" | "high" | "medium" | "low"
-  timestamp: string
-  voiceRecording?: string
-  additionalInfo?: string
-  adminNotificationNumber?: string // Added admin notification number
+const urgencyLevels = ['critical', 'high', 'medium', 'low'] as const
+const e164PhonePattern = /^\+[1-9]\d{7,14}$/
+
+type Urgency = (typeof urgencyLevels)[number]
+
+interface Coordinates {
+  latitude: number
+  longitude: number
+  accuracyMeters: number | null
 }
 
-interface SOSResponse {
-  id: string
-  status: "received" | "processing" | "dispatched" | "resolved"
-  estimatedResponseTime: number
-  assignedUnits: string[]
-  instructions: string[]
-  callbackRequired: boolean
+interface EmergencyProfileSnapshot {
+  name: string
+  age: number | null
+  bloodGroup: string
+  medicalConditions: string
+  emergencyContacts: string[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function boundedText(value: unknown, maxLength: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+}
+
+function readCoordinates(value: unknown): Coordinates | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const latitude = value.latitude
+  const longitude = value.longitude
+  if (
+    typeof latitude !== 'number' ||
+    !Number.isFinite(latitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null
+  }
+
+  const accuracy = value.accuracy
+  const accuracyMeters =
+    typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy >= 0
+      ? Math.min(accuracy, 100_000)
+      : null
+
+  return { latitude, longitude, accuracyMeters }
+}
+
+function isUrgency(value: unknown): value is Urgency {
+  return typeof value === 'string' && urgencyLevels.includes(value as Urgency)
+}
+
+async function sendEmergencyContactSms(
+  alertId: string,
+  urgency: Urgency,
+  location: Coordinates | null,
+  profile: EmergencyProfileSnapshot,
+): Promise<number> {
+  const accountSid = process.env.TWILIO_SID
+  const authToken = process.env.TWILIO_TOKEN
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER
+  const contacts = profile.emergencyContacts
+    .map((phone) => phone.replace(/[\s()-]/g, ''))
+    .filter((phone) => e164PhonePattern.test(phone))
+
+  if (!accountSid || !authToken || !fromNumber || contacts.length === 0) {
+    return 0
+  }
+
+  const locationText = location
+    ? `Location: https://maps.google.com/?q=${location.latitude},${location.longitude}`
+    : 'Location is unavailable.'
+  const message = [
+    `SafeNet SOS alert ${alertId} from ${profile.name || 'a SafeNet user'}.`,
+    `Urgency: ${urgency}.`,
+    locationText,
+    'This alert was recorded in SafeNet. Contact local emergency services directly for immediate help.',
+  ].join(' ')
+  const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
+  const authorization = `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`
+
+  const results = await Promise.all(
+    contacts.map(async (to) => {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            Authorization: authorization,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({ From: fromNumber, To: to, Body: message }),
+          signal: AbortSignal.timeout(10_000),
+        })
+
+        if (!response.ok) {
+          console.error('[v0] Twilio rejected an emergency contact notification:', response.status)
+        }
+
+        return response.ok
+      } catch (error) {
+        console.error('[v0] Emergency contact notification failed:', error instanceof Error ? error.name : 'UnknownError')
+        return false
+      }
+    }),
+  )
+
+  return results.filter(Boolean).length
 }
 
 export async function POST(request: NextRequest) {
+  let body: unknown
   try {
-    const sosData: SOSRequest = await request.json()
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+  }
 
-    // Validate required fields
-    if (!sosData.userId || !sosData.profile) {
-      return NextResponse.json({ error: "Missing required SOS data" }, { status: 400 })
+  if (!isRecord(body)) {
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+  }
+
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error('[v0] SOS account session validation failed:', authError.code ?? authError.name)
+      return NextResponse.json({ error: 'Your account session is temporarily unavailable.' }, { status: 503 })
     }
 
-    // Generate unique SOS ID
-    const sosId = `SOS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in before sending an SOS alert.' }, { status: 401 })
+    }
 
-    await storeUserDetails(sosData, sosId)
+    const { data: profileRow, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, age, blood_group, medical_conditions, emergency_contact1, emergency_contact2')
+      .eq('id', user.id)
+      .maybeSingle()
 
-    // Simulate AI classification and priority assignment
-    const classification = await classifyEmergency(sosData)
+    if (profileError) {
+      console.error('[v0] SOS profile lookup failed:', profileError.code ?? profileError.message)
+      return NextResponse.json({ error: 'Could not load your emergency profile.' }, { status: 500 })
+    }
 
-    if (sosData.adminNotificationNumber) {
-      // Send admin notification but don't block SOS processing on failure
-      await sendAdminNotification(sosData, sosId, sosData.adminNotificationNumber).catch((err) => {
-        console.error("[v0] Admin notification error:", err)
+    const metadataName = user.user_metadata?.name
+    const nameFromMetadata = typeof metadataName === 'string' ? metadataName.trim() : ''
+    const profileName = boundedText(profileRow?.full_name, 120) || nameFromMetadata || user.email?.split('@')[0] || ''
+    const profile: EmergencyProfileSnapshot = {
+      name: profileName,
+      age: typeof profileRow?.age === 'number' ? profileRow.age : null,
+      bloodGroup: boundedText(profileRow?.blood_group, 8),
+      medicalConditions: boundedText(profileRow?.medical_conditions, 2000),
+      emergencyContacts: [profileRow?.emergency_contact1, profileRow?.emergency_contact2].filter(
+        (phone): phone is string => typeof phone === 'string' && e164PhonePattern.test(phone.trim()),
+      ),
+    }
+
+    const location = readCoordinates(body.location)
+    const urgency = isUrgency(body.urgency) ? body.urgency : 'high'
+    const emergencyType = boundedText(body.emergencyType, 100) || 'General Emergency'
+    const additionalInfo = boundedText(body.additionalInfo, 2000)
+
+    const { data: alert, error: insertError } = await supabase
+      .from('sos_alerts')
+      .insert({
+        user_id: user.id,
+        emergency_type: emergencyType,
+        urgency,
+        status: 'received',
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
+        accuracy_meters: location?.accuracyMeters ?? null,
+        profile_snapshot: profile,
+        additional_info: additionalInfo || null,
       })
+      .select('id')
+      .single()
+
+    if (insertError || !alert) {
+      console.error('[v0] SOS database insert failed:', insertError?.code ?? insertError?.message ?? 'No alert returned')
+      return NextResponse.json({ error: 'Could not save your SOS alert.' }, { status: 500 })
     }
 
-    // Simulate emergency service dispatch
-    const dispatchResult = await dispatchEmergencyServices(sosData, classification)
+    const notificationsSent = await sendEmergencyContactSms(alert.id, urgency, location, profile)
 
-    // Send alerts to user's emergency contacts
-    await sendEmergencyAlerts(sosData, sosId)
-
-    // Prepare response
-    const response: SOSResponse = {
-      id: sosId,
-      status: "dispatched",
-      estimatedResponseTime: classification.responseTime,
-      assignedUnits: dispatchResult.units,
-      instructions: classification.instructions,
-      callbackRequired: classification.urgency === "critical" || classification.urgency === "high",
-    }
-
-    // Log SOS for monitoring
-    console.log("SOS Alert Processed:", {
-      id: sosId,
-      location: sosData.location,
-      urgency: classification.urgency,
-      responseTime: classification.responseTime,
-      userProfile: sosData.profile,
-    })
-
-    return NextResponse.json(response, { status: 200 })
-  } catch (error) {
-    console.error("SOS processing error:", error)
-    return NextResponse.json({ error: "Failed to process SOS alert" }, { status: 500 })
-  }
-}
-
-async function storeUserDetails(sosData: SOSRequest, sosId: string) {
-  // In a real app, this would save to a database like Supabase or Neon
-  const userRecord = {
-    sosId,
-    userId: sosData.userId,
-    timestamp: sosData.timestamp,
-    profile: sosData.profile,
-    location: sosData.location,
-    emergencyType: sosData.emergencyType,
-    urgency: sosData.urgency,
-  }
-
-  // Simulate database storage
-  console.log("Storing user details:", userRecord)
-
-  // You can add actual database integration here:
-  // await supabase.from('sos_alerts').insert(userRecord)
-
-  return userRecord
-}
-
-async function sendAdminNotification(sosData: SOSRequest, sosId: string, adminNumber: string) {
-  console.log("[v0] Admin notification details:", {
-    adminNumber,
-    sosId,
-    twilioSid: process.env.TWILIO_SID ? "Present" : "Missing",
-    twilioToken: process.env.TWILIO_TOKEN ? "Present" : "Missing",
-    twilioPhone: process.env.TWILIO_PHONE_NUMBER ? "Present" : "Missing",
-  })
-
-  const locationText =
-    sosData.location && sosData.location.latitude && sosData.location.longitude
-      ? `Location: ${sosData.location.latitude.toFixed(6)}, ${sosData.location.longitude.toFixed(6)}\nGoogle Maps: https://maps.google.com/?q=${sosData.location.latitude},${sosData.location.longitude}`
-      : "Location: Not available"
-
-  const adminMessage = `🚨 SAFENET SOS ALERT 🚨\nID: ${sosId}\nName: ${sosData.profile.name}\nAge: ${sosData.profile.age}\nBlood Group: ${sosData.profile.bloodGroup}\n${locationText}\nEmergency: ${sosData.emergencyType}\nTime: ${new Date(sosData.timestamp).toLocaleString()}\nUrgency: ${sosData.urgency.toUpperCase()}\n\nRESCUE NEEDED - User requires immediate assistance. Please respond immediately.`
-
-  // Check for missing Twilio credentials
-  if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-    console.warn("[v0] Twilio SMS disabled - Missing credentials. Alert logged locally.")
-    console.log("[v0] SOS Alert that would be sent:", {
-      adminNumber,
-      sosId,
-      message: adminMessage,
-    })
-    // Return true to allow app to continue - SMS is optional, alert is still logged
-    return true
-  }
-
-  // Validate phone number format
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/
-  if (!phoneRegex.test(adminNumber)) {
-    console.error("[v0] Invalid admin phone number format:", adminNumber)
-    return true // Log locally instead
-  }
-
-  try {
-    console.log("[v0] Sending SMS to:", adminNumber)
-    console.log("[v0] From number:", process.env.TWILIO_PHONE_NUMBER)
-
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_SID}/Messages.json`, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${process.env.TWILIO_SID}:${process.env.TWILIO_TOKEN}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+    return NextResponse.json(
+      {
+        id: alert.id,
+        status: 'received',
+        notificationsSent,
+        message: 'Your SOS alert was saved with your profile.',
       },
-      body: new URLSearchParams({
-        From: process.env.TWILIO_PHONE_NUMBER!,
-        To: adminNumber,
-        Body: adminMessage,
-      }).toString(),
-    })
-
-    const responseText = await response.text()
-    console.log("[v0] Twilio response status:", response.status)
-
-    if (response.ok) {
-      console.log(`✅ Rescue SMS sent successfully to ${adminNumber}`)
-      return true
-    } else {
-      console.error(`⚠️ Twilio SMS failed (${response.status}):`, responseText)
-      console.log("[v0] SMS alert logged locally as fallback")
-      // Log alert locally even if SMS fails - don't block the SOS response
-      return true
-    }
+      { status: 201, headers: { 'Cache-Control': 'no-store' } },
+    )
   } catch (error) {
-    console.error(`⚠️ Error sending SMS to ${adminNumber}:`, error)
-    console.log("[v0] SMS alert logged locally as fallback")
-    // Return true - alert is still logged, SMS is just a bonus notification
-    return true
+    console.error('[v0] SOS request failed:', error instanceof Error ? error.name : 'UnknownError')
+    return NextResponse.json({ error: 'Could not process your SOS alert.' }, { status: 500 })
   }
-}
-
-async function classifyEmergency(sosData: SOSRequest) {
-  // Simulate AI classification logic
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  let urgency: "critical" | "high" | "medium" | "low" = "medium"
-  let responseTime = 15 // minutes
-  let instructions: string[] = []
-
-  // Classify based on emergency type
-  if (sosData.emergencyType.toLowerCase().includes("medical")) {
-    urgency = "high"
-    responseTime = 8
-    instructions = [
-      "Stay calm and remain in current location",
-      "Do not move if injured unless in immediate danger",
-      "Emergency medical services are en route",
-    ]
-  } else if (sosData.emergencyType.toLowerCase().includes("fire")) {
-    urgency = "critical"
-    responseTime = 5
-    instructions = [
-      "Evacuate immediately if safe to do so",
-      "Stay low to avoid smoke inhalation",
-      "Fire department is responding",
-    ]
-  }
-
-  // Adjust priority based on user profile
-  const age = typeof sosData.profile.age === "string" ? Number.parseInt(sosData.profile.age) : sosData.profile.age
-  if (age > 65 || sosData.profile.medicalConditions.length > 0) {
-    if (urgency === "medium") urgency = "high"
-    else if (urgency === "high") urgency = "critical"
-    responseTime = Math.max(responseTime - 3, 3)
-  }
-
-  return {
-    urgency,
-    responseTime,
-    instructions,
-    confidence: 85 + Math.random() * 10,
-  }
-}
-
-async function dispatchEmergencyServices(sosData: SOSRequest, classification: any) {
-  // Simulate emergency service dispatch
-  await new Promise((resolve) => setTimeout(resolve, 500))
-
-  const units = []
-
-  if (sosData.emergencyType.toLowerCase().includes("medical")) {
-    units.push("Ambulance Unit 12", "Paramedic Team Alpha")
-  }
-  if (sosData.emergencyType.toLowerCase().includes("fire")) {
-    units.push("Fire Engine 7", "Ladder Truck 3")
-  }
-  if (classification.urgency === "critical") {
-    units.push("Police Unit 45")
-  }
-
-  return { units }
-}
-
-async function sendEmergencyAlerts(sosData: SOSRequest, sosId: string) {
-  const locationText =
-    sosData.location && sosData.location.latitude && sosData.location.longitude
-      ? `Location: ${sosData.location.latitude.toFixed(6)}, ${sosData.location.longitude.toFixed(6)}\nGoogle Maps: https://maps.google.com/?q=${sosData.location.latitude},${sosData.location.longitude}`
-      : "Location: Not available"
-
-  const message = `🚨 SOS ALERT 🚨\nName: ${sosData.profile.name}\n${locationText}\nEmergency ID: ${sosId}\nTime: ${new Date(sosData.timestamp).toLocaleString()}\n\nEmergency services have been notified. This is an automated SafeNet alert.`
-
-  // Check if Twilio is properly configured
-  if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-    console.warn("[v0] Twilio SMS disabled - Alerts logged locally")
-    for (const contact of sosData.profile.emergencyContacts) {
-      console.log("[v0] Emergency alert logged for:", contact)
-    }
-    return true
-  }
-
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/
-
-  for (const contact of sosData.profile.emergencyContacts) {
-    try {
-      // Validate contact phone number
-      if (!phoneRegex.test(contact)) {
-        console.warn(`[v0] Invalid phone number format for contact: ${contact}`)
-        continue
-      }
-
-      const response = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_SID}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${Buffer.from(`${process.env.TWILIO_SID}:${process.env.TWILIO_TOKEN}`).toString("base64")}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            From: process.env.TWILIO_PHONE_NUMBER!,
-            To: contact,
-            Body: message,
-          }).toString(),
-        },
-      )
-
-      if (response.ok) {
-        console.log(`✅ Emergency SMS sent to contact: ${contact}`)
-      } else {
-        const errorText = await response.text()
-        console.warn(`⚠️ Failed to send SMS to contact ${contact}: ${response.status}`)
-        console.log("[v0] Alert logged locally as fallback")
-      }
-    } catch (error) {
-      console.error(`⚠️ Error sending SMS to contact ${contact}:`, error)
-      console.log("[v0] Alert logged locally as fallback")
-    }
-  }
-
-  return true
 }

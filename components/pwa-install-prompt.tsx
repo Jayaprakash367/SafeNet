@@ -85,8 +85,8 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <Card className="fixed bottom-4 left-4 right-4 z-50 border-primary shadow-lg md:left-auto md:right-4 md:w-80">
-      <CardContent className="p-4">
+    <Card className="mx-3 my-4 border-primary shadow-lg sm:fixed sm:bottom-4 sm:left-auto sm:right-4 sm:z-50 sm:mx-0 sm:my-0 sm:w-80">
+      <CardContent className="p-3">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
             <Smartphone className="h-6 w-6 text-primary" />
@@ -98,11 +98,11 @@ export function PWAInstallPrompt() {
             </p>
             <div className="flex gap-2 mt-3">
               <Button size="sm" onClick={handleInstallClick} className="flex-1">
-                <Download className="h-4 w-4 mr-1" />
+                <Download aria-hidden="true" data-icon="inline-start" />
                 Install
               </Button>
-              <Button size="sm" variant="outline" onClick={handleDismiss}>
-                <X className="h-4 w-4" />
+              <Button aria-label="Dismiss install prompt" size="sm" variant="outline" onClick={handleDismiss}>
+                <X aria-hidden="true" />
               </Button>
             </div>
           </div>

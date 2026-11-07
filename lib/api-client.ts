@@ -8,7 +8,7 @@ import { fallbackSystem, FallbackResponse } from "./fallback-system"
 export interface APIClientOptions {
   timeout?: number
   retries?: number
-  cache?: boolean
+  useCache?: boolean
   cacheTTL?: number
 }
 
@@ -17,7 +17,7 @@ export class SafeNetAPIClient {
   private defaultOptions: APIClientOptions = {
     timeout: 15000,
     retries: 3,
-    cache: true,
+    useCache: true,
     cacheTTL: 5 * 60 * 1000, // 5 minutes
   }
 
@@ -29,8 +29,13 @@ export class SafeNetAPIClient {
     options: RequestInit & APIClientOptions = {},
   ): Promise<FallbackResponse<T>> {
     const mergedOptions = { ...this.defaultOptions, ...options }
+    const requestOptions = { ...options }
+    delete requestOptions.timeout
+    delete requestOptions.retries
+    delete requestOptions.useCache
+    delete requestOptions.cacheTTL
 
-    const primaryFn = () => this.makeRequest<T>(endpoint, options)
+    const primaryFn = () => this.makeRequest<T>(endpoint, requestOptions)
 
     // Fallback to cached data if available
     const fallbackFn = async () => {
@@ -41,7 +46,7 @@ export class SafeNetAPIClient {
       throw new Error("No cached data available")
     }
 
-    return fallbackSystem.execute<T>(endpoint, primaryFn, mergedOptions.cache ? fallbackFn : undefined)
+    return fallbackSystem.execute<T>(endpoint, primaryFn, mergedOptions.useCache ? fallbackFn : undefined)
   }
 
   /**
@@ -140,7 +145,7 @@ export class SafeNetAPIClient {
   async getDisasterAlerts(latitude?: number, longitude?: number): Promise<FallbackResponse<any>> {
     const endpoint = latitude && longitude ? `/api/disaster-alerts?lat=${latitude}&lng=${longitude}` : "/api/disaster-alerts"
 
-    return this.call(endpoint, { cache: true, cacheTTL: 10 * 60 * 1000 })
+    return this.call(endpoint, { useCache: true, cacheTTL: 10 * 60 * 1000 })
   }
 
   /**
@@ -149,7 +154,7 @@ export class SafeNetAPIClient {
   async getWeather(latitude?: number, longitude?: number): Promise<FallbackResponse<any>> {
     const endpoint = latitude && longitude ? `/api/weather?lat=${latitude}&lng=${longitude}` : "/api/weather"
 
-    return this.call(endpoint, { cache: true, cacheTTL: 15 * 60 * 1000 })
+    return this.call(endpoint, { useCache: true, cacheTTL: 15 * 60 * 1000 })
   }
 
   /**

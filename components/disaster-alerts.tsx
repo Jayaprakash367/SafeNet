@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -29,94 +29,61 @@ interface DisasterAlert {
   issuedAt: number
   expiresAt: number
   source: string
+  sourceUrl: string
   actionRequired: boolean
   instructions: string[]
   affectedRadius: number // in km
 }
 
-export function DisasterAlerts() {
+export function DisasterAlerts({ location: dashboardLocation }: { location?: { lat: number; lng: number } | null }) {
   const [alerts, setAlerts] = useState<DisasterAlert[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<number | null>(null)
-  const [userLocation] = useState({ lat: 40.7128, lng: -74.006 }) // Mock NYC location
-
-  useEffect(() => {
-    fetchDisasterAlerts()
-
-    // Set up periodic refresh every 5 minutes
-    const interval = setInterval(fetchDisasterAlerts, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [error, setError] = useState('')
+  const location = dashboardLocation ?? userLocation
 
   const fetchDisasterAlerts = async () => {
     setIsLoading(true)
+    setError('')
 
     try {
-      // Simulate API call to government weather/disaster APIs
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      let coordinates = location
+      if (!coordinates) {
+        coordinates = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('Location is not supported by this browser.'))
+            return
+          }
+          navigator.geolocation.getCurrentPosition(
+            ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+            () => reject(new Error('Allow location access to load official alerts for your area.')),
+            { timeout: 10000, enableHighAccuracy: true, maximumAge: 300000 },
+          )
+        })
+        setUserLocation(coordinates)
+      }
 
-      const mockAlerts = generateMockAlerts()
-      setAlerts(mockAlerts)
+      const parameters = new URLSearchParams({
+        lat: String(coordinates.lat),
+        lng: String(coordinates.lng),
+        radius: '50',
+      })
+      const response = await fetch(`/api/disaster-alerts?${parameters}`, { cache: 'no-store' })
+      const result = (await response.json()) as { alerts?: DisasterAlert[]; error?: string }
+      if (!response.ok || !Array.isArray(result.alerts)) {
+        throw new Error(result.error ?? 'Official alert sources could not be reached.')
+      }
+
+      setAlerts(result.alerts)
       setLastUpdated(Date.now())
-    } catch (error) {
-      console.error("Failed to fetch disaster alerts:", error)
+    } catch (fetchError) {
+      setError(fetchError instanceof Error ? fetchError.message : 'Official alert sources could not be reached.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const generateMockAlerts = (): DisasterAlert[] => {
-    const now = Date.now()
-    const alertTypes = [
-      {
-        type: "weather" as const,
-        severity: "moderate" as const,
-        title: "Severe Thunderstorm Warning",
-        description: "Severe thunderstorms with heavy rain, lightning, and possible hail expected in the area.",
-        instructions: [
-          "Stay indoors and away from windows",
-          "Avoid using electrical appliances",
-          "Do not go outside during the storm",
-          "Keep emergency supplies ready",
-        ],
-      },
-      {
-        type: "flood" as const,
-        severity: "severe" as const,
-        title: "Flash Flood Watch",
-        description: "Heavy rainfall may cause flash flooding in low-lying areas and near waterways.",
-        instructions: [
-          "Avoid driving through flooded roads",
-          "Move to higher ground if necessary",
-          "Stay away from storm drains and waterways",
-          "Have evacuation plan ready",
-        ],
-      },
-      {
-        type: "heat" as const,
-        severity: "minor" as const,
-        title: "Heat Advisory",
-        description: "Temperatures expected to reach dangerous levels. Heat index may exceed 100°F.",
-        instructions: [
-          "Stay hydrated and drink plenty of water",
-          "Limit outdoor activities during peak hours",
-          "Check on elderly neighbors and relatives",
-          "Never leave children or pets in vehicles",
-        ],
-      },
-    ]
-
-    return alertTypes.map((alert, index) => ({
-      id: `alert_${now}_${index}`,
-      ...alert,
-      area: "New York City Metropolitan Area",
-      issuedAt: now - index * 30 * 60 * 1000, // Stagger by 30 minutes
-      expiresAt: now + 24 * 60 * 60 * 1000, // Expires in 24 hours
-      source: "National Weather Service",
-      actionRequired: alert.severity === "severe" || alert.severity === "extreme",
-      affectedRadius: 50,
-    }))
-  }
 
   const getAlertIcon = (type: DisasterAlert["type"]) => {
     switch (type) {
@@ -208,13 +175,24 @@ export function DisasterAlerts() {
               className="flex items-center gap-1 bg-transparent"
             >
               <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
-              Refresh
+              {isLoading ? 'Loading…' : lastUpdated ? 'Refresh' : 'Find alerts'}
             </Button>
           </div>
         </div>
-        <CardDescription>Real-time disaster alerts and safety information for your area</CardDescription>
+        <CardDescription>Official alert feeds from the National Weather Service and USGS, where available.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {error && (
+          <Alert role="alert" className="border-destructive/30 bg-destructive/10">
+            <AlertTriangle aria-hidden="true" className="size-4 text-destructive" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {!location && !lastUpdated && !isLoading && !error && (
+          <p className="text-sm text-muted-foreground">Choose “Find alerts” to share your location with the alert sources for this request.</p>
+        )}
+
         {/* Critical Alerts Banner */}
         {criticalAlerts.length > 0 && (
           <Alert className="border-destructive bg-destructive/10">
@@ -246,9 +224,18 @@ export function DisasterAlerts() {
               </div>
             ) : activeAlerts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No active disaster alerts in your area</p>
-                <p className="text-xs mt-1">Stay safe and check back regularly</p>
+                <AlertTriangle aria-hidden="true" className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                {lastUpdated ? (
+                  <>
+                    <p>No active disaster alerts in your area</p>
+                    <p className="text-xs mt-1">Stay safe and check back regularly</p>
+                  </>
+                ) : (
+                  <>
+                    <p>Choose “Find alerts” to check official feeds</p>
+                    <p className="text-xs mt-1">No location-based alert check has run yet</p>
+                  </>
+                )}
               </div>
             ) : (
               activeAlerts.map((alert) => {
@@ -319,9 +306,11 @@ export function DisasterAlerts() {
                     {/* Source */}
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <span className="text-xs text-muted-foreground">Source: {alert.source}</span>
-                      <Button variant="ghost" size="sm" className="h-auto p-1 text-xs">
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        More Info
+                      <Button asChild variant="ghost" size="sm" className="h-auto p-1 text-xs">
+                        <a href={alert.sourceUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink aria-hidden="true" className="mr-1 size-3" />
+                          Official source
+                        </a>
                       </Button>
                     </div>
                   </div>
@@ -333,10 +322,9 @@ export function DisasterAlerts() {
 
         {/* Information Footer */}
         <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
-          <p>• Alerts are sourced from National Weather Service and emergency agencies</p>
-          <p>• Push notifications will alert you to new critical warnings</p>
-          <p>• Location-based filtering shows relevant alerts for your area</p>
-          <p>• Follow all official evacuation orders and safety instructions</p>
+          <p>• NWS alerts cover the United States; USGS earthquake events are global.</p>
+          <p>• Alert availability depends on the provider, location, and network.</p>
+          <p>• Follow instructions from local emergency authorities and verify official updates.</p>
         </div>
       </CardContent>
     </Card>

@@ -3,76 +3,74 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Enterprise Disaster Management Light Mode */
-  --background: #f8f9fa; /* Clean off-white background */
-  --foreground: #1a1f35; /* Deep navy text */
-  --card: #ffffff; /* Pure white cards with elevation */
-  --card-foreground: #1a1f35; /* Deep navy card text */
-  --popover: #ffffff; /* White popover */
-  --popover-foreground: #1a1f35; /* Navy popover text */
-  --primary: #c41e3a; /* Official disaster red (matches emergency services) */
-  --primary-foreground: #ffffff; /* White text on red */
-  --secondary: #1a5490; /* Professional deep blue (government/official) */
-  --secondary-foreground: #ffffff; /* White text on blue */
-  --muted: #e9ecef; /* Light gray backgrounds */
-  --muted-foreground: #495057; /* Medium gray text */
-  --accent: #ff6b35; /* High-visibility orange (warning/alert) */
-  --accent-foreground: #ffffff; /* White text on orange */
-  --destructive: #c41e3a; /* Red for critical actions */
-  --destructive-foreground: #ffffff; /* White text on destructive */
-  --border: #dee2e6; /* Subtle gray borders */
-  --input: #f1f3f5; /* Light input backgrounds */
-  --ring: #c41e3a; /* Red focus ring */
-  --chart-1: #c41e3a; /* Red for critical data */
-  --chart-2: #1a5490; /* Blue for general data */
-  --chart-3: #ff6b35; /* Orange for warnings */
-  --chart-4: #2d942d; /* Green for safe state */
-  --chart-5: #6c757d; /* Gray for neutral */
-  --radius: 0.625rem; /* Professional corner rounding */
-  --sidebar: #1a5490; /* Deep blue sidebar */
-  --sidebar-foreground: #ffffff; /* White sidebar text */
-  --sidebar-primary: #ff6b35; /* Orange sidebar accents */
-  --sidebar-primary-foreground: #ffffff; /* White text on orange */
-  --sidebar-accent: #c41e3a; /* Red sidebar accents */
-  --sidebar-accent-foreground: #ffffff; /* White text on red */
-  --sidebar-border: #0d2a4d; /* Darker blue borders */
-  --sidebar-ring: #ff6b35; /* Orange focus ring */
+  --background: oklch(0.98 0.001 270);
+  --foreground: oklch(0.25 0.01 270);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.01 270);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.01 270);
+  --primary: oklch(0.58 0.18 25);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.72 0.18 50);
+  --secondary-foreground: oklch(0.25 0.01 270);
+  --muted: oklch(0.92 0.005 270);
+  --muted-foreground: oklch(0.55 0.01 270);
+  --accent: oklch(0.58 0.18 25);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.58 0.18 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.88 0.005 270);
+  --input: oklch(0.96 0.005 270);
+  --ring: oklch(0.58 0.18 25 / 0.2);
+  --chart-1: oklch(0.58 0.18 25);
+  --chart-2: oklch(0.72 0.18 50);
+  --chart-3: oklch(0.4 0.08 270);
+  --chart-4: oklch(0.65 0.15 200);
+  --chart-5: oklch(0.5 0.15 140);
+  --radius: 0.75rem;
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.25 0.01 270);
+  --sidebar-primary: oklch(0.58 0.18 25);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.72 0.18 50);
+  --sidebar-accent-foreground: oklch(0.25 0.01 270);
+  --sidebar-border: oklch(0.88 0.005 270);
+  --sidebar-ring: oklch(0.58 0.18 25 / 0.2);
 }
 
 .dark {
-  /* Enterprise Disaster Management Dark Mode */
-  --background: #0f1419; /* Very dark background */
-  --foreground: #e9ecef; /* Light text */
-  --card: #1a1f35; /* Dark blue-gray cards */
-  --card-foreground: #e9ecef; /* Light card text */
-  --popover: #0f1419; /* Dark popover */
-  --popover-foreground: #e9ecef; /* Light popover text */
-  --primary: #ff4656; /* Bright red for visibility in dark mode */
-  --primary-foreground: #0f1419; /* Dark text on red */
-  --secondary: #4a90e2; /* Bright blue for dark mode */
-  --secondary-foreground: #ffffff; /* White text on blue */
-  --muted: #2d3748; /* Dark muted background */
-  --muted-foreground: #a0aec0; /* Light gray text */
-  --accent: #ff6b35; /* Bright orange accent */
-  --accent-foreground: #0f1419; /* Dark text on orange */
-  --destructive: #ff4656; /* Bright red destructive */
-  --destructive-foreground: #0f1419; /* Dark text on destructive */
-  --border: #2d3748; /* Dark borders */
-  --input: #1a1f35; /* Dark input background */
-  --ring: #ff4656; /* Red focus ring */
-  --chart-1: #ff4656; /* Bright red charts */
-  --chart-2: #4a90e2; /* Bright blue charts */
-  --chart-3: #ff6b35; /* Bright orange charts */
-  --chart-4: #4cab5c; /* Green charts */
-  --chart-5: #a0aec0; /* Light gray charts */
-  --sidebar: #0d1117; /* Very dark sidebar */
-  --sidebar-foreground: #e9ecef; /* Light sidebar text */
-  --sidebar-primary: #ff4656; /* Bright red sidebar */
-  --sidebar-primary-foreground: #0f1419; /* Dark text on red */
-  --sidebar-accent: #ff6b35; /* Bright orange sidebar */
-  --sidebar-accent-foreground: #0f1419; /* Dark text on orange */
-  --sidebar-border: #0d1117; /* Very dark borders */
-  --sidebar-ring: #ff4656; /* Red focus ring */
+  --background: oklch(0.12 0.002 270);
+  --foreground: oklch(0.95 0.01 270);
+  --card: oklch(0.16 0.002 270);
+  --card-foreground: oklch(0.95 0.01 270);
+  --popover: oklch(0.12 0.002 270);
+  --popover-foreground: oklch(0.95 0.01 270);
+  --primary: oklch(0.65 0.2 25);
+  --primary-foreground: oklch(0.12 0.002 270);
+  --secondary: oklch(0.78 0.2 50);
+  --secondary-foreground: oklch(0.12 0.002 270);
+  --muted: oklch(0.22 0.002 270);
+  --muted-foreground: oklch(0.65 0.01 270);
+  --accent: oklch(0.65 0.2 25);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.12 0.002 270);
+  --border: oklch(0.22 0.002 270);
+  --input: oklch(0.2 0.002 270);
+  --ring: oklch(0.65 0.2 25 / 0.3);
+  --chart-1: oklch(0.65 0.2 25);
+  --chart-2: oklch(0.78 0.2 50);
+  --chart-3: oklch(0.7 0.01 270);
+  --chart-4: oklch(0.7 0.15 200);
+  --chart-5: oklch(0.6 0.15 140);
+  --sidebar: oklch(0.16 0.002 270);
+  --sidebar-foreground: oklch(0.95 0.01 270);
+  --sidebar-primary: oklch(0.65 0.2 25);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.78 0.2 50);
+  --sidebar-accent-foreground: oklch(0.12 0.002 270);
+  --sidebar-border: oklch(0.22 0.002 270);
+  --sidebar-ring: oklch(0.65 0.2 25 / 0.3);
 }
 
 @theme inline {
@@ -127,7 +125,7 @@
 @layer components {
   /* Enterprise glass-morphism effect */
   .glass-effect {
-    @apply backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border border-gray-200/50 dark:border-slate-700/50;
+    @apply border border-border/70 bg-white/80 backdrop-blur-md dark:bg-card/80;
   }
 
   /* Professional card hover with elevation */
@@ -138,10 +136,10 @@
   /* Enterprise SOS pulse animation */
   @keyframes pulse-sos {
     0%, 100% {
-      box-shadow: 0 0 0 0 rgba(196, 30, 58, 0.7);
+      box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.7);
     }
     50% {
-      box-shadow: 0 0 0 10px rgba(196, 30, 58, 0);
+      box-shadow: 0 0 0 10px rgba(230, 57, 70, 0);
     }
   }
 
@@ -183,7 +181,7 @@
 
   /* Professional gradient */
   .gradient-disaster {
-    background: linear-gradient(135deg, #c41e3a 0%, #1a5490 50%, #ff6b35 100%);
+    background: linear-gradient(135deg, #e63946 0%, #f4a261 100%);
   }
 
   /* Enterprise card shadow with depth */
@@ -197,6 +195,156 @@
 
   .dark .card-shadow {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Smooth fade-in animation */
+  @keyframes fadeInAnimation {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeInAnimation 0.5s ease-out;
+  }
+
+  /* Smooth slide-in from left */
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out;
+  }
+
+  /* Smooth slide-in from right */
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out;
+  }
+
+  /* Float animation */
+  @keyframes floatAnimation {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: floatAnimation 3s ease-in-out infinite;
+  }
+
+  /* Glow pulse animation */
+  @keyframes glowPulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(230, 57, 70, 0.3), 0 0 15px rgba(244, 162, 97, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 10px rgba(230, 57, 70, 0.5), 0 0 25px rgba(244, 162, 97, 0.4);
+    }
+  }
+
+  .animate-glow-pulse {
+    animation: glowPulse 3s ease-in-out infinite;
+  }
+
+  /* Smooth scale animation */
+  @keyframes scaleUp {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-up {
+    animation: scaleUp 0.4s ease-out;
+  }
+
+  /* Bounce animation */
+  @keyframes bounceGentle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .animate-bounce-gentle {
+    animation: bounceGentle 2s ease-in-out infinite;
+  }
+
+  /* Shimmer effect for loading */
+  @keyframes shimmerEffect {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+    background-size: 1000px 100%;
+    animation: shimmerEffect 2s infinite;
+  }
+
+  /* Animation delay utilities */
+  .animation-delay-1000 {
+    animation-delay: 1s;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-3000 {
+    animation-delay: 3s;
+  }
+
+  /* Form field focus animation */
+  @keyframes fieldFocus {
+    0% {
+      box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.1);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(230, 57, 70, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(230, 57, 70, 0);
+    }
+  }
+
+  .animate-field-focus {
+    animation: fieldFocus 0.6s ease-out;
   }
 
   /* Custom utility styles can be added here when needed */

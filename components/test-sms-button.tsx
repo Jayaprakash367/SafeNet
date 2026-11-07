@@ -1,85 +1,99 @@
 "use client"
 
 import { useState } from "react"
+import { CheckCircle, Loader2, MessageSquare, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, CheckCircle, XCircle, Loader2 } from "lucide-react"
 
-export function TestSMSButton() {
+interface TestSMSButtonProps {
+  canSend: boolean
+  accessMessage: string
+  onAccessRequired: () => void
+}
+
+export function TestSMSButton({ canSend, accessMessage, onAccessRequired }: TestSMSButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const sendTestSMS = async () => {
+    if (!canSend) {
+      onAccessRequired()
+      return
+    }
+    if (isLoading) return
+
     setIsLoading(true)
     setResult(null)
 
     try {
       const response = await fetch("/api/test-sms", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phoneNumber: "+918825516088", // Your Indian phone number
-        }),
+        headers: { "Content-Type": "application/json" },
       })
+      const data = (await response.json()) as { message?: unknown; error?: unknown }
+      const message =
+        (response.ok && typeof data.message === "string" && data.message) ||
+        (typeof data.error === "string" && data.error) ||
+        "The SMS test could not be completed."
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setResult({ success: true, message: data.message })
-      } else {
-        setResult({ success: false, message: data.error || "Failed to send test SMS" })
-      }
-    } catch (error) {
-      setResult({ success: false, message: "Network error occurred" })
+      setResult({ success: response.ok, message })
+    } catch {
+      setResult({ success: false, message: "Network error. Please try again." })
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full min-w-0 max-w-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
+          <MessageSquare aria-hidden="true" className="size-5" />
           Test SMS Delivery
         </CardTitle>
-        <CardDescription>Send a test message to verify SMS delivery to your phone</CardDescription>
+        <CardDescription>
+          {canSend
+            ? 'Sends a real test message to the first emergency contact saved in your profile.'
+            : accessMessage}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Button onClick={sendTestSMS} disabled={isLoading} className="w-full" size="lg">
+      <CardContent className="flex flex-col gap-4">
+        <Button onClick={sendTestSMS} disabled={isLoading} className="w-full whitespace-normal" size="lg">
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sending Test SMS...
+              <Loader2 aria-hidden="true" className="animate-spin" data-icon="inline-start" />
+              Sending test SMS...
             </>
           ) : (
             <>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Send Test SMS to +918825516088
+              <MessageSquare aria-hidden="true" data-icon="inline-start" />
+              Send test SMS
             </>
           )}
         </Button>
 
         {result && (
           <div
-            className={`flex items-center gap-2 p-3 rounded-lg ${
+            role={result.success ? "status" : "alert"}
+            className={`flex items-center gap-2 rounded-lg border p-3 ${
               result.success
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-red-50 text-red-700 border border-red-200"
+                ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300"
+                : "border-destructive/30 bg-destructive/10 text-destructive"
             }`}
           >
-            {result.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+            {result.success ? (
+              <CheckCircle aria-hidden="true" className="size-4 shrink-0" />
+            ) : (
+              <XCircle aria-hidden="true" className="size-4 shrink-0" />
+            )}
             <span className="text-sm font-medium">{result.message}</span>
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground">
-          <p>• Check your phone for the test message</p>
-          <p>• Trial accounts can only send to verified numbers</p>
-          <p>• Messages may take 1-2 minutes to arrive</p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Save a valid international phone number in Emergency Profile first. SMS delivery depends on your provider and
+          account configuration.
+        </p>
       </CardContent>
     </Card>
   )
