@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  DEMO_EMERGENCY_PROFILE,
   type EmergencyProfileData,
   isEmergencyProfileComplete,
 } from '@/lib/supabase/hooks'
@@ -32,6 +33,16 @@ export function UserDetailsForm({ initialProfile, onSave, onSaved }: UserDetails
   const [hasEdited, setHasEdited] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const hasSavedDetails = Boolean(
+    initialProfile.age ||
+      initialProfile.bloodGroup ||
+      initialProfile.emergencyContact1 ||
+      initialProfile.emergencyContact2 ||
+      initialProfile.address ||
+      initialProfile.medicalConditions ||
+      initialProfile.allergies ||
+      initialProfile.medications,
+  )
 
   useEffect(() => {
     if (!hasEdited) {
@@ -73,14 +84,36 @@ export function UserDetailsForm({ initialProfile, onSave, onSaved }: UserDetails
     <Card className="border-primary/15 shadow-xl shadow-primary/5">
       <form onSubmit={handleSubmit} className="flex flex-col">
       <CardHeader className="gap-3 border-b border-border/70 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <ShieldCheck aria-hidden="true" className="size-5" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ShieldCheck aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Your emergency details</CardTitle>
+              <CardDescription className="mt-1">These details are saved privately and attached to your SOS record. SafeNet does not dispatch responders.</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-xl">Your emergency details</CardTitle>
-            <CardDescription className="mt-1">This helps responders understand what you need.</CardDescription>
-          </div>
+          {!hasSavedDetails && !hasEdited && (
+            <div className="flex flex-col gap-2 sm:items-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isSaving}
+                onClick={() => {
+                  setProfile(DEMO_EMERGENCY_PROFILE)
+                  setHasEdited(true)
+                  setError('')
+                }}
+              >
+                Fill with sample data
+              </Button>
+              <p className="max-w-xs text-xs text-muted-foreground sm:text-right">
+                Not saved until you submit. The fictional phone number is blocked from SMS.
+              </p>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-6 pt-6">
@@ -154,9 +187,9 @@ export function UserDetailsForm({ initialProfile, onSave, onSaved }: UserDetails
                 maxLength={40}
                 required
                 onChange={(event) => updateField('emergencyContact1', event.target.value)}
-                placeholder="+1 415 555 0123"
+                placeholder="International phone number"
               />
-              <p className="text-xs text-muted-foreground">Include the country code, for example +14155550123.</p>
+              <p className="text-xs text-muted-foreground">Include a +country code and use a contact you control. Reserved fictional U.S. 555 demo numbers cannot receive SMS.</p>
             </div>
 
             <div className="flex flex-col gap-2">

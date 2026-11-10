@@ -59,19 +59,30 @@ export function SOSButton({
       const result = (await response.json()) as {
         id?: unknown
         notificationsSent?: unknown
+        notificationsSkippedDemo?: unknown
+        notificationsFailed?: unknown
+        notificationStatus?: unknown
       }
 
       if (!response.ok || typeof result.id !== 'string') {
         throw new Error('Unable to save the SOS alert.')
       }
 
-      const notificationsSent =
-        typeof result.notificationsSent === 'number' ? result.notificationsSent : 0
+      const notificationsSent = typeof result.notificationsSent === 'number' ? result.notificationsSent : 0
+      const notificationsSkippedDemo = typeof result.notificationsSkippedDemo === 'number' ? result.notificationsSkippedDemo : 0
+      const notificationsFailed = typeof result.notificationsFailed === 'number' ? result.notificationsFailed : 0
+      const notificationStatus = typeof result.notificationStatus === 'string' ? result.notificationStatus : ''
+      const notificationMessage = notificationsSent > 0
+        ? `An SMS notification was submitted to ${notificationsSent} emergency contact${notificationsSent === 1 ? '' : 's'}.${notificationsSkippedDemo > 0 ? ' The fictional demo contact was skipped.' : ''}${notificationsFailed > 0 ? ` ${notificationsFailed} contact notification${notificationsFailed === 1 ? '' : 's'} failed.` : ''}`
+        : notificationStatus === 'demo_contact'
+          ? 'The fictional sample phone number was skipped; no SMS was sent.'
+          : notificationStatus === 'not_configured'
+            ? 'SMS delivery is not configured, so no SMS was sent.'
+            : 'No SMS notification was submitted.'
+
       setRequestState('success')
       setRequestMessage(
-        notificationsSent > 0
-          ? `SOS alert ${result.id} was saved. An SMS notification was submitted to ${notificationsSent} emergency contact${notificationsSent === 1 ? '' : 's'}.`
-          : `SOS alert ${result.id} was saved, but no SMS notification was submitted. Contact local emergency services directly if you need immediate help.`,
+        `SOS alert ${result.id} was saved. ${notificationMessage} Contact local emergency services directly if you need immediate help.`,
       )
       onActivate()
     } catch (error) {

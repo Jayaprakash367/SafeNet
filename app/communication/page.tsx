@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { SMSCommunication } from "@/components/sms-communication"
 import { CommunicationHub } from "@/components/communication-hub"
+import { BackendTestRunner } from "@/components/backend-test-runner"
 import { ArrowLeft, MessageSquare } from "lucide-react"
 import Link from "next/link"
 
@@ -37,6 +38,10 @@ export default function CommunicationPage() {
           <SMSCommunication />
           <CommunicationHub />
         </div>
+        <details className="rounded-xl border border-border bg-card p-4">
+          <summary className="cursor-pointer text-sm font-semibold">Developer backend checks</summary>
+          <div className="mt-4"><BackendTestRunner /></div>
+        </details>
       </main>
     </div>
   )

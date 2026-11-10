@@ -125,7 +125,7 @@ export default function ProfilePage() {
             <p className="max-w-2xl text-pretty text-muted-foreground">
               {currentView === 'summary'
                 ? 'Review your details, then continue to the SafeNet main page.'
-                : 'Enter a few details so SafeNet can include them in an emergency response.'}
+                : 'Enter a few details so SafeNet can include them in your saved SOS alert record.'}
             </p>
           </div>
 

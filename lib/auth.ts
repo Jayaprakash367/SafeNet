@@ -56,3 +56,11 @@ export function validateName(name: string): ValidationResult {
 
   return { valid: true }
 }
+
+export function normalizePhoneNumber(phone: string): string {
+  return phone.replace(/[\s()-]/g, '')
+}
+
+export function isReservedDemoPhone(phone: string): boolean {
+  return /^\+1\d{3}55501\d{2}$/.test(normalizePhoneNumber(phone))
+}

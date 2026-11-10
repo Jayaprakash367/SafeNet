@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface TestSMSButtonProps {
   canSend: boolean
   accessMessage: string
+  isDemoContact?: boolean
   onAccessRequired: () => void
 }
 
-export function TestSMSButton({ canSend, accessMessage, onAccessRequired }: TestSMSButtonProps) {
+export function TestSMSButton({ canSend, accessMessage, isDemoContact = false, onAccessRequired }: TestSMSButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
 
@@ -52,9 +53,11 @@ export function TestSMSButton({ canSend, accessMessage, onAccessRequired }: Test
           Test SMS Delivery
         </CardTitle>
         <CardDescription>
-          {canSend
-            ? 'Sends a real test message to the first emergency contact saved in your profile.'
-            : accessMessage}
+          {isDemoContact
+            ? 'The sample contact is fictional. The backend blocks this number and will not send an SMS.'
+            : canSend
+              ? 'Sends a real test message to the first emergency contact saved in your profile.'
+              : accessMessage}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

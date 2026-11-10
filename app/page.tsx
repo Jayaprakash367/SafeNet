@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { isEmergencyProfileComplete, useAuthUser, useEmergencyProfile } from '@/lib/supabase/hooks'
+import { isReservedDemoPhone } from '@/lib/auth'
+import { isEmergencyProfileComplete, useAuthUser, useEmergencyProfile, useSosAlertHistory } from '@/lib/supabase/hooks'
 import { EmergencyProfile } from '@/components/emergency-profile'
+import { SosAlertHistory } from '@/components/sos-alert-history'
 import { LocationTracker } from '@/components/location-tracker'
 import { DisasterAlerts } from '@/components/disaster-alerts'
 import { QuickActions } from '@/components/quick-actions'
@@ -47,6 +49,13 @@ export default function SafeNetDashboard() {
     error: profileError,
     isLoading: isProfileLoading,
   } = useEmergencyProfile(activeUser?.id ?? '')
+  const {
+    alerts: recentSosAlerts,
+    error: sosHistoryError,
+    isLoading: isSosHistoryLoading,
+    refresh: refreshSosHistory,
+  } = useSosAlertHistory(activeUser?.id ?? '')
+  const hasDemoContact = isReservedDemoPhone(profile.emergencyContact1)
   const hasReadyProfile = Boolean(
     activeUser &&
       isAuthReady &&
@@ -61,7 +70,8 @@ export default function SafeNetDashboard() {
     if (!activeUser) return 'Sign in to save your emergency profile and send SOS alerts or SMS tests.'
     if (profileError) return 'Your emergency profile could not be loaded. Profile-based features are paused.'
     if (isProfileLoading) return 'Loading your emergency profile.'
-    return 'Complete your emergency profile to enable SOS alerts and SMS tests.'
+    if (!isEmergencyProfileComplete(profile)) return 'Complete your emergency profile to enable SOS alerts and SMS tests.'
+    return 'Your private emergency profile is ready for SOS alerts.'
   })()
   const [isSOSActive, setIsSOSActive] = useState(false)
   const [selectedEmergencyType, setSelectedEmergencyType] = useState('General Emergency')
@@ -184,7 +194,10 @@ export default function SafeNetDashboard() {
             <div className={isSOSActive ? 'pulse-sos rounded-full' : 'relative'}>
               <SOSButton
                 isActive={isSOSActive}
-                onActivate={() => setIsSOSActive(true)}
+                onActivate={() => {
+                  setIsSOSActive(true)
+                  void refreshSosHistory().catch(() => undefined)
+                }}
                 onDeactivate={() => setIsSOSActive(false)}
                 userLocation={userLocation}
                 connectionStatus={connectionStatus}
@@ -197,6 +210,10 @@ export default function SafeNetDashboard() {
           </CardContent>
         </Card>
 
+        {activeUser && (
+          <SosAlertHistory alerts={recentSosAlerts} isLoading={isSosHistoryLoading} error={sosHistoryError} />
+        )}
+
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-lg font-bold">SMS System Test</CardTitle>
@@ -206,6 +223,7 @@ export default function SafeNetDashboard() {
             <TestSMSButton
               canSend={hasReadyProfile}
               accessMessage={privateFeatureMessage}
+              isDemoContact={hasDemoContact}
               onAccessRequired={() => router.push(activeUser ? '/profile' : '/login?next=%2Fprofile')}
             />
           </CardContent>

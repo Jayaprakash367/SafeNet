@@ -1,108 +1,71 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { transcribe } from 'ai'
+import { NextResponse } from 'next/server'
+import { analyzeEmergency } from '@/lib/emergency-analysis'
+import { createClient } from '@/lib/supabase/server'
 
-interface VoiceAnalysisRequest {
-  audioData: string // Base64 encoded audio
-  duration: number
-  userId: string
-  location?: {
-    latitude: number
-    longitude: number
-  }
-}
+const MAX_AUDIO_BYTES = 5 * 1024 * 1024
+const MAX_DURATION_SECONDS = 30
+const supportedAudioTypes = new Set(['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg'])
 
-interface VoiceAnalysisResponse {
-  classification: "urgent" | "moderate" | "false_alarm"
-  confidence: number
-  keywords: string[]
-  emotionalState: "calm" | "stressed" | "panicked" | "unclear"
-  backgroundNoise: "quiet" | "moderate" | "loud" | "chaotic"
-  recommendedAction: string
-  callbackRequired: boolean
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { audioData, duration, userId, location }: VoiceAnalysisRequest = await request.json()
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-    if (!audioData || !userId) {
-      return NextResponse.json({ error: "Missing required voice analysis data" }, { status: 400 })
+    if (authError && authError.name !== 'AuthSessionMissingError') {
+      console.error('[v0] Voice analysis session validation failed:', authError.code ?? authError.name)
+      return NextResponse.json({ error: 'Your account session could not be verified.' }, { status: 503 })
     }
 
-    // Simulate AI voice analysis processing
-    const analysis = await analyzeVoiceRecording(audioData, duration)
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in to use voice analysis.' }, { status: 401 })
+    }
 
-    // Log analysis for monitoring
-    console.log("Voice Analysis Completed:", {
-      userId,
-      classification: analysis.classification,
-      confidence: analysis.confidence,
-      duration,
+    const formData = await request.formData()
+    const audio = formData.get('audio')
+    const duration = Number(formData.get('duration'))
+
+    if (!(audio instanceof File) || !Number.isFinite(duration) || duration < 1 || duration > MAX_DURATION_SECONDS) {
+      return NextResponse.json({ error: 'Provide an audio recording between 1 and 30 seconds.' }, { status: 400 })
+    }
+
+    if (audio.size === 0 || audio.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json({ error: 'The audio recording must be smaller than 5 MB.' }, { status: 413 })
+    }
+
+    const mediaType = audio.type.split(';')[0].trim().toLowerCase()
+    if (!supportedAudioTypes.has(mediaType)) {
+      return NextResponse.json({ error: 'Use a supported WebM, MP4, MP3, WAV, or Ogg audio recording.' }, { status: 415 })
+    }
+
+    const transcription = await transcribe({
+      model: 'google/gemini-3.5-transcribe',
+      audio: new Uint8Array(await audio.arrayBuffer()),
+      maxRetries: 0,
+      abortSignal: AbortSignal.timeout(25_000),
     })
+    const transcript = transcription.text.trim().slice(0, 1200)
 
-    return NextResponse.json(analysis, { status: 200 })
+    if (!transcript) {
+      return NextResponse.json({ error: 'No speech could be transcribed. Try a clearer recording.' }, { status: 422 })
+    }
+
+    const analysis = await analyzeEmergency({ scenario: transcript })
+
+    return NextResponse.json(
+      {
+        transcript,
+        analysis,
+        persisted: false,
+        createdAt: new Date().toISOString(),
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    )
   } catch (error) {
-    console.error("Voice analysis error:", error)
-    return NextResponse.json({ error: "Failed to analyze voice recording" }, { status: 500 })
-  }
-}
-
-async function analyzeVoiceRecording(audioData: string, duration: number): Promise<VoiceAnalysisResponse> {
-  // Simulate AI processing time
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-
-  // Mock AI analysis based on duration and random factors
-  const durationFactor = Math.min(duration / 30, 1) // Normalize to 30 seconds max
-  const randomFactor = Math.random()
-
-  // Simulate keyword detection
-  const possibleKeywords = [
-    "help",
-    "emergency",
-    "hurt",
-    "fire",
-    "accident",
-    "medical",
-    "police",
-    "ambulance",
-    "danger",
-    "trapped",
-    "bleeding",
-    "pain",
-  ]
-  const detectedKeywords = possibleKeywords.filter(() => Math.random() > 0.7).slice(0, 3)
-
-  // Calculate urgency score
-  const urgencyScore = durationFactor * 0.4 + detectedKeywords.length * 0.2 + randomFactor * 0.4
-
-  let classification: "urgent" | "moderate" | "false_alarm"
-  let emotionalState: "calm" | "stressed" | "panicked" | "unclear"
-  let backgroundNoise: "quiet" | "moderate" | "loud" | "chaotic"
-  let recommendedAction: string
-
-  if (urgencyScore > 0.7) {
-    classification = "urgent"
-    emotionalState = Math.random() > 0.5 ? "panicked" : "stressed"
-    backgroundNoise = Math.random() > 0.6 ? "chaotic" : "loud"
-    recommendedAction = "Immediate emergency response required. Initiating callback for voice confirmation."
-  } else if (urgencyScore > 0.4) {
-    classification = "moderate"
-    emotionalState = Math.random() > 0.5 ? "stressed" : "calm"
-    backgroundNoise = Math.random() > 0.5 ? "moderate" : "quiet"
-    recommendedAction = "Potential emergency detected. Local authorities will be notified."
-  } else {
-    classification = "false_alarm"
-    emotionalState = "calm"
-    backgroundNoise = "quiet"
-    recommendedAction = "No immediate emergency detected. Recording saved for quality assurance."
-  }
-
-  return {
-    classification,
-    confidence: Math.round(75 + Math.random() * 20), // 75-95% confidence
-    keywords: detectedKeywords,
-    emotionalState,
-    backgroundNoise,
-    recommendedAction,
-    callbackRequired: classification === "urgent",
+    console.error('[v0] Voice analysis failed:', error instanceof Error ? error.name : 'UnknownError')
+    return NextResponse.json({ error: 'Voice analysis is temporarily unavailable. No recording was saved.' }, { status: 502 })
   }
 }

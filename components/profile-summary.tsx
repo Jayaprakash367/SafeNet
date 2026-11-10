@@ -74,8 +74,9 @@ export function ProfileSummary({ profile, onEdit, onContinue }: ProfileSummaryPr
         <Alert className="border-primary/15 bg-primary/5">
           <MapPin aria-hidden="true" className="size-4 text-primary" />
           <AlertDescription>
-            This profile stays linked to this browser. There is no password to remember, but clearing browser data or switching devices means it cannot be recovered.
+            This profile is saved to your signed-in SafeNet account and is available on other devices after you sign in.
           </AlertDescription>
+
         </Alert>
       </CardContent>
       <CardFooter className="flex flex-col-reverse justify-between gap-3 border-t border-border pt-5 sm:flex-row">

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { isReservedDemoPhone } from "@/lib/auth"
 import { AlertCircle, CheckCircle, Edit, Heart, MapPin, Phone, Save, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  DEMO_EMERGENCY_PROFILE,
   EMPTY_EMERGENCY_PROFILE,
   type EmergencyProfileData,
   useEmergencyProfile,
@@ -74,6 +76,17 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
       profile.bloodGroup &&
       /^\+[1-9]\d{7,14}$/.test(profile.emergencyContact1.replace(/[\s()-]/g, '')),
   )
+  const hasSavedProfileDetails = Boolean(
+    data?.profile.age ||
+      data?.profile.bloodGroup ||
+      data?.profile.emergencyContact1 ||
+      data?.profile.emergencyContact2 ||
+      data?.profile.address ||
+      data?.profile.medicalConditions ||
+      data?.profile.allergies ||
+      data?.profile.medications,
+  )
+  const canLoadSampleData = !isLoading && !loadError && !hasSavedProfileDetails && !isEditing
 
   return (
     <Card>
@@ -89,6 +102,20 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
                 <CheckCircle aria-hidden="true" className="mr-1 size-3" />
                 Complete
               </Badge>
+            )}
+            {canLoadSampleData && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setProfile(DEMO_EMERGENCY_PROFILE)
+                  setIsEditing(true)
+                  setSaveError('')
+                }}
+              >
+                Fill sample data
+              </Button>
             )}
             <Button
               variant="outline"
@@ -126,6 +153,14 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
             <CheckCircle aria-hidden="true" className="size-4 text-primary" />
             <AlertDescription className="text-primary">
               Profile saved successfully. This information is ready for your SOS alerts.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isReservedDemoPhone(profile.emergencyContact1) && (
+          <Alert className="border-secondary/30 bg-secondary/10" role="status">
+            <AlertDescription>
+              This profile uses a fictional sample contact. SafeNet blocks outgoing SMS to reserved demo numbers.
             </AlertDescription>
           </Alert>
         )}
@@ -212,7 +247,7 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
                   value={profile.emergencyContact1}
                   maxLength={40}
                   onChange={(event) => handleInputChange("emergencyContact1", event.target.value)}
-                  placeholder="+1 555 123 4567"
+                  placeholder="International phone number"
                   className="mt-1"
                 />
               ) : (
@@ -234,7 +269,7 @@ export function EmergencyProfile({ userId }: EmergencyProfileProps) {
                   value={profile.emergencyContact2}
                   maxLength={40}
                   onChange={(event) => handleInputChange("emergencyContact2", event.target.value)}
-                  placeholder="+1 555 987 6543"
+                  placeholder="Optional international phone number"
                   className="mt-1"
                 />
               ) : (

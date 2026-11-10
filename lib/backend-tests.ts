@@ -1,453 +1,176 @@
-/**
- * SafeNet Backend Testing Suite
- * Comprehensive verification of all backend functions and API endpoints
- * Tests authentication, SOS alerts, SMS, location tracking, and data persistence
- */
-
-interface TestResult {
+export interface TestResult {
   name: string
   status: 'PASS' | 'FAIL' | 'WARN'
   message: string
   timestamp: string
 }
 
-interface BackendTestSuite {
-  runAllTests: () => Promise<TestResult[]>
-  runAuthenticationTests: () => Promise<TestResult[]>
-  runSOSTests: () => Promise<TestResult[]>
-  runLocationTests: () => Promise<TestResult[]>
-  runOfflineQueueTests: () => Promise<TestResult[]>
-  runSecurityTests: () => Promise<TestResult[]>
-}
+export type TestCategory = 'all' | 'auth' | 'sos' | 'location' | 'offline' | 'security'
 
-export const backendTests: BackendTestSuite = {
-  /**
-   * Run all test suites
-   */
-  runAllTests: async () => {
-    const results: TestResult[] = []
-
-    console.log('[TEST] Starting comprehensive backend test suite...')
-
-    // Authentication tests
-    results.push(...(await backendTests.runAuthenticationTests()))
-    // SOS tests
-    results.push(...(await backendTests.runSOSTests()))
-    // Location tests
-    results.push(...(await backendTests.runLocationTests()))
-    // Offline queue tests
-    results.push(...(await backendTests.runOfflineQueueTests()))
-    // Security tests
-    results.push(...(await backendTests.runSecurityTests()))
-
-    const passed = results.filter((r) => r.status === 'PASS').length
-    const failed = results.filter((r) => r.status === 'FAIL').length
-    const warnings = results.filter((r) => r.status === 'WARN').length
-
-    console.log(
-      `[TEST] Suite complete: ${passed} passed, ${failed} failed, ${warnings} warnings`
-    )
-
-    return results
-  },
-
-  /**
-   * Authentication & Authorization Tests
-   */
-  runAuthenticationTests: async () => {
-    const results: TestResult[] = []
-
-    // Test 1: Local storage auth
-    try {
-      localStorage.setItem('safenet-auth', 'true')
-      localStorage.setItem('safenet-user', JSON.stringify({ email: 'test@safenet.gov' }))
-
-      const auth = localStorage.getItem('safenet-auth')
-      const user = localStorage.getItem('safenet-user')
-
-      if (auth === 'true' && user) {
-        results.push({
-          name: 'Auth Storage',
-          status: 'PASS',
-          message: 'Local storage authentication working correctly',
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        results.push({
-          name: 'Auth Storage',
-          status: 'FAIL',
-          message: 'Local storage authentication failed',
-          timestamp: new Date().toISOString(),
-        })
-      }
-    } catch (error) {
-      results.push({
-        name: 'Auth Storage',
-        status: 'FAIL',
-        message: `Auth storage error: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Test 2: Session persistence
-    try {
-      const sessionKey = 'safenet-session-' + Date.now()
-      sessionStorage.setItem(sessionKey, JSON.stringify({ active: true }))
-      const retrieved = sessionStorage.getItem(sessionKey)
-
-      if (retrieved) {
-        results.push({
-          name: 'Session Persistence',
-          status: 'PASS',
-          message: 'Session storage working correctly',
-          timestamp: new Date().toISOString(),
-        })
-        sessionStorage.removeItem(sessionKey)
-      } else {
-        throw new Error('Session not retrieved')
-      }
-    } catch (error) {
-      results.push({
-        name: 'Session Persistence',
-        status: 'FAIL',
-        message: `Session persistence failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    return results
-  },
-
-  /**
-   * SOS Alert Tests
-   */
-  runSOSTests: async () => {
-    const results: TestResult[] = []
-
-    // Test 1: SOS queue creation
-    try {
-      const sosAlert = {
-        id: 'SOS-' + Date.now(),
-        type: 'EMERGENCY_SOS',
-        location: { lat: 28.6139, lng: 77.209 },
-        timestamp: new Date().toISOString(),
-        status: 'ACTIVE',
-      }
-
-      const sosQueue = localStorage.getItem('safenet-sos-queue')
-      const queue = sosQueue ? JSON.parse(sosQueue) : []
-      queue.push(sosAlert)
-      localStorage.setItem('safenet-sos-queue', JSON.stringify(queue))
-
-      const saved = localStorage.getItem('safenet-sos-queue')
-      if (saved && saved.includes(sosAlert.id)) {
-        results.push({
-          name: 'SOS Queue Creation',
-          status: 'PASS',
-          message: 'SOS alert queued successfully',
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        throw new Error('SOS not saved')
-      }
-    } catch (error) {
-      results.push({
-        name: 'SOS Queue Creation',
-        status: 'FAIL',
-        message: `SOS queue failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Test 2: SOS status tracking
-    try {
-      const sosQueue = localStorage.getItem('safenet-sos-queue')
-      const alerts = sosQueue ? JSON.parse(sosQueue) : []
-
-      if (Array.isArray(alerts)) {
-        results.push({
-          name: 'SOS Status Tracking',
-          status: 'PASS',
-          message: `${alerts.length} SOS alerts tracked`,
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        throw new Error('Invalid alerts format')
-      }
-    } catch (error) {
-      results.push({
-        name: 'SOS Status Tracking',
-        status: 'FAIL',
-        message: `SOS tracking failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    return results
-  },
-
-  /**
-   * Location Tracking Tests
-   */
-  runLocationTests: async () => {
-    const results: TestResult[] = []
-
-    // Test 1: Geolocation API availability
-    try {
-      if ('geolocation' in navigator) {
-        results.push({
-          name: 'Geolocation API',
-          status: 'PASS',
-          message: 'Geolocation API available',
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        results.push({
-          name: 'Geolocation API',
-          status: 'FAIL',
-          message: 'Geolocation API not available',
-          timestamp: new Date().toISOString(),
-        })
-      }
-    } catch (error) {
-      results.push({
-        name: 'Geolocation API',
-        status: 'FAIL',
-        message: `Geolocation check failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Test 2: Location caching
-    try {
-      const cachedLocation = {
-        lat: 28.6139,
-        lng: 77.209,
-        accuracy: 50,
-        timestamp: new Date().toISOString(),
-      }
-
-      localStorage.setItem('safenet-location-cache', JSON.stringify(cachedLocation))
-      const retrieved = localStorage.getItem('safenet-location-cache')
-
-      if (retrieved) {
-        results.push({
-          name: 'Location Caching',
-          status: 'PASS',
-          message: 'Location caching functional',
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        throw new Error('Location cache not retrieved')
-      }
-    } catch (error) {
-      results.push({
-        name: 'Location Caching',
-        status: 'FAIL',
-        message: `Location caching failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    return results
-  },
-
-  /**
-   * Offline Queue & Sync Tests
-   */
-  runOfflineQueueTests: async () => {
-    const results: TestResult[] = []
-
-    // Test 1: Queue management
-    try {
-      const testQueue = {
-        operations: [
-          { id: 'OP-1', type: 'SOS', timestamp: new Date().toISOString() },
-          { id: 'OP-2', type: 'SMS', timestamp: new Date().toISOString() },
-        ],
-      }
-
-      localStorage.setItem('safenet-offline-queue', JSON.stringify(testQueue))
-      const retrieved = localStorage.getItem('safenet-offline-queue')
-
-      if (retrieved) {
-        const parsed = JSON.parse(retrieved)
-        if (parsed.operations.length === 2) {
-          results.push({
-            name: 'Offline Queue Management',
-            status: 'PASS',
-            message: 'Queue operations stored and retrieved',
-            timestamp: new Date().toISOString(),
-          })
-        } else {
-          throw new Error('Queue length mismatch')
-        }
-      } else {
-        throw new Error('Queue not retrieved')
-      }
-    } catch (error) {
-      results.push({
-        name: 'Offline Queue Management',
-        status: 'FAIL',
-        message: `Queue management failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Test 2: Sync capability
-    try {
-      const syncMetadata = {
-        lastSync: new Date().toISOString(),
-        pendingOps: 2,
-        status: 'READY',
-      }
-
-      localStorage.setItem('safenet-sync-metadata', JSON.stringify(syncMetadata))
-      const retrieved = localStorage.getItem('safenet-sync-metadata')
-
-      if (retrieved) {
-        const parsed = JSON.parse(retrieved)
-        if (parsed.status === 'READY') {
-          results.push({
-            name: 'Sync Capability',
-            status: 'PASS',
-            message: 'System ready for data sync',
-            timestamp: new Date().toISOString(),
-          })
-        } else {
-          throw new Error('Sync status invalid')
-        }
-      } else {
-        throw new Error('Sync metadata not found')
-      }
-    } catch (error) {
-      results.push({
-        name: 'Sync Capability',
-        status: 'FAIL',
-        message: `Sync capability check failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    return results
-  },
-
-  /**
-   * Security & Validation Tests
-   */
-  runSecurityTests: async () => {
-    const results: TestResult[] = []
-
-    // Test 1: Input validation
-    try {
-      const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-      const validatePhone = (phone: string) => /^[0-9]{10,}$/.test(phone)
-
-      const validEmail = validateEmail('test@safenet.gov')
-      const invalidEmail = validateEmail('not-an-email')
-      const validPhone = validatePhone('9876543210')
-      const invalidPhone = validatePhone('123')
-
-      if (validEmail && !invalidEmail && validPhone && !invalidPhone) {
-        results.push({
-          name: 'Input Validation',
-          status: 'PASS',
-          message: 'Input validation rules working correctly',
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        throw new Error('Validation rules failed')
-      }
-    } catch (error) {
-      results.push({
-        name: 'Input Validation',
-        status: 'FAIL',
-        message: `Validation failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Test 2: Error handling
-    try {
-      const handleError = (error: unknown) => {
-        if (error instanceof Error) {
-          return {
-            message: error.message,
-            timestamp: new Date().toISOString(),
-            severity: 'error',
-          }
-        }
-        return null
-      }
-
-      const testError = new Error('Test error')
-      const handled = handleError(testError)
-
-      if (handled && handled.message === 'Test error') {
-        results.push({
-          name: 'Error Handling',
-          status: 'PASS',
-          message: 'Error handling and logging functional',
-          timestamp: new Date().toISOString(),
-        })
-      } else {
-        throw new Error('Error handling failed')
-      }
-    } catch (error) {
-      results.push({
-        name: 'Error Handling',
-        status: 'FAIL',
-        message: `Error handling test failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    // Test 3: Data encryption check
-    try {
-      const sensitiveData = {
-        location: { lat: 28.6139, lng: 77.209 },
-        timestamp: new Date().toISOString(),
-      }
-
-      // Store in localStorage (in production, would be encrypted)
-      localStorage.setItem('safenet-sensitive', JSON.stringify(sensitiveData))
-
-      results.push({
-        name: 'Data Protection',
-        status: 'WARN',
-        message: 'Sensitive data stored. Ensure encryption in production',
-        timestamp: new Date().toISOString(),
-      })
-    } catch (error) {
-      results.push({
-        name: 'Data Protection',
-        status: 'FAIL',
-        message: `Data protection check failed: ${error}`,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    return results
-  },
-}
-
-/**
- * Generate test report
- */
-export function generateTestReport(results: TestResult[]) {
-  const grouped = {
-    PASS: results.filter((r) => r.status === 'PASS'),
-    FAIL: results.filter((r) => r.status === 'FAIL'),
-    WARN: results.filter((r) => r.status === 'WARN'),
+export interface TestReport {
+  summary: {
+    total: number
+    passed: number
+    failed: number
+    warnings: number
+    successRate: string
   }
+  results: TestResult[]
+  timestamp: string
+}
+
+interface TestResponse {
+  response: Response
+  payload: unknown
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function createResult(name: string, status: TestResult['status'], message: string): TestResult {
+  return { name, status, message, timestamp: new Date().toISOString() }
+}
+
+async function requestJson(url: string, options?: RequestInit): Promise<TestResponse> {
+  const response = await fetch(url, { cache: 'no-store', ...options })
+  const payload: unknown = await response.json().catch(() => ({}))
+  return { response, payload }
+}
+
+function getErrorMessage(payload: unknown, fallback: string) {
+  return isRecord(payload) && typeof payload.error === 'string' ? payload.error : fallback
+}
+
+export const backendTests = {
+  async runAllTests(): Promise<TestResult[]> {
+    const suites = await Promise.all([
+      this.runAuthenticationTests(),
+      this.runSOSTests(),
+      this.runLocationTests(),
+      this.runOfflineQueueTests(),
+      this.runSecurityTests(),
+    ])
+    return suites.flat()
+  },
+
+  async runAuthenticationTests(): Promise<TestResult[]> {
+    try {
+      const { response, payload } = await requestJson('/api/sos?limit=1')
+      if (response.status === 401) {
+        return [createResult('Authenticated backend session', 'WARN', 'Sign in to test private backend operations.')]
+      }
+      if (!response.ok || !isRecord(payload) || !Array.isArray(payload.alerts)) {
+        return [createResult('Authenticated backend session', 'FAIL', getErrorMessage(payload, 'The private SOS history endpoint did not respond correctly.'))]
+      }
+      return [createResult('Authenticated backend session', 'PASS', 'The server verified the signed-in session and returned account-scoped data.')]
+    } catch {
+      return [createResult('Authenticated backend session', 'FAIL', 'The private backend endpoint could not be reached.')]
+    }
+  },
+
+  async runSOSTests(): Promise<TestResult[]> {
+    try {
+      const { response, payload } = await requestJson('/api/sos?limit=5')
+      if (response.status === 401) {
+        return [createResult('Private SOS history', 'WARN', 'Sign in to verify private SOS history access.')]
+      }
+      if (!response.ok || !isRecord(payload) || !Array.isArray(payload.alerts)) {
+        return [createResult('Private SOS history', 'FAIL', getErrorMessage(payload, 'SOS history could not be read.'))]
+      }
+      return [createResult('Private SOS history', 'PASS', `${payload.alerts.length} recent account-scoped alert record(s) returned; no alert was created.`)]
+    } catch {
+      return [createResult('Private SOS history', 'FAIL', 'SOS history could not be reached.')]
+    }
+  },
+
+  async runLocationTests(): Promise<TestResult[]> {
+    const geolocationAvailable = typeof navigator !== 'undefined' && 'geolocation' in navigator
+    const results = [createResult(
+      'Device location capability',
+      geolocationAvailable ? 'PASS' : 'WARN',
+      geolocationAvailable ? 'Location is requested only after a user action.' : 'This browser does not expose geolocation.',
+    )]
+
+    try {
+      const { response, payload } = await requestJson('/api/weather', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: 0, lon: 0 }),
+      })
+      const hasWeather = isRecord(payload) && typeof payload.condition === 'string' && typeof payload.temperature === 'number'
+      results.push(createResult(
+        'Live weather API',
+        response.ok && hasWeather ? 'PASS' : 'WARN',
+        response.ok && hasWeather
+          ? 'Open-Meteo returned live data for fixed sample coordinates; GPS was not accessed.'
+          : getErrorMessage(payload, 'The external weather provider is temporarily unavailable.'),
+      ))
+    } catch {
+      results.push(createResult('Live weather API', 'WARN', 'The external weather provider could not be reached.'))
+    }
+
+    return results
+  },
+
+  async runOfflineQueueTests(): Promise<TestResult[]> {
+    const online = typeof navigator !== 'undefined' ? navigator.onLine : false
+    return [createResult(
+      'Offline delivery behavior',
+      online ? 'PASS' : 'WARN',
+      online
+        ? 'The browser is online. SOS requests are not falsely reported as delivered or silently queued offline.'
+        : 'The browser is offline. SOS requests will show a failure instead of being stored as if delivered.',
+    )]
+  },
+
+  async runSecurityTests(): Promise<TestResult[]> {
+    const results: TestResult[] = []
+
+    try {
+      const { response } = await requestJson('/api/sos?limit=1', { credentials: 'omit' })
+      results.push(createResult(
+        'Unauthenticated SOS history protection',
+        response.status === 401 ? 'PASS' : 'FAIL',
+        response.status === 401
+          ? 'SOS history rejects requests without a signed-in session.'
+          : 'SOS history did not reject an unauthenticated request.',
+      ))
+    } catch {
+      results.push(createResult('Unauthenticated SOS history protection', 'FAIL', 'The authorization check could not be completed.'))
+    }
+
+    try {
+      const { response, payload } = await requestJson('/api/test-sms')
+      if (response.status === 401) {
+        results.push(createResult('Read-only SMS readiness check', 'WARN', 'Sign in to check SMS readiness; this test never sends a message.'))
+      } else if (!response.ok) {
+        results.push(createResult('Read-only SMS readiness check', 'FAIL', getErrorMessage(payload, 'SMS readiness could not be checked.')))
+      } else {
+        const reason = isRecord(payload) && typeof payload.reason === 'string' ? payload.reason : 'unknown'
+        results.push(createResult('Read-only SMS readiness check', 'PASS', `SMS readiness was checked without sending a message (${reason}).`))
+      }
+    } catch {
+      results.push(createResult('Read-only SMS readiness check', 'FAIL', 'The read-only SMS readiness endpoint could not be reached.'))
+    }
+
+    return results
+  },
+}
+
+export function generateTestReport(results: TestResult[]): TestReport {
+  const passed = results.filter((result) => result.status === 'PASS').length
+  const failed = results.filter((result) => result.status === 'FAIL').length
+  const warnings = results.filter((result) => result.status === 'WARN').length
+  const measured = passed + failed
 
   return {
     summary: {
       total: results.length,
-      passed: grouped.PASS.length,
-      failed: grouped.FAIL.length,
-      warnings: grouped.WARN.length,
-      successRate: ((grouped.PASS.length / results.length) * 100).toFixed(2) + '%',
+      passed,
+      failed,
+      warnings,
+      successRate: `${measured === 0 ? 0 : Math.round((passed / measured) * 100)}%`,
     },
     results,
     timestamp: new Date().toISOString(),

@@ -1,48 +1,50 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { AlertCircle, CheckCircle2, Play, XCircle, Loader } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { backendTests, generateTestReport } from '@/lib/backend-tests'
-import { Play, CheckCircle2, AlertCircle, XCircle, Loader } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { backendTests, generateTestReport, type TestCategory, type TestReport } from '@/lib/backend-tests'
+
+const categories: { id: TestCategory; label: string }[] = [
+  { id: 'all', label: 'All checks' },
+  { id: 'auth', label: 'Account' },
+  { id: 'sos', label: 'SOS history' },
+  { id: 'location', label: 'Location & weather' },
+  { id: 'offline', label: 'Offline behavior' },
+  { id: 'security', label: 'Security' },
+]
 
 export function BackendTestRunner() {
   const [isRunning, setIsRunning] = useState(false)
-  const [testResults, setTestResults] = useState<any>(null)
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'auth' | 'sos' | 'location' | 'offline' | 'security'>('all')
+  const [testResults, setTestResults] = useState<TestReport | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<TestCategory>('all')
+  const [runError, setRunError] = useState('')
 
   const handleRunTests = async () => {
     setIsRunning(true)
+    setRunError('')
     setTestResults(null)
 
     try {
-      let results
-
-      switch (selectedCategory) {
-        case 'auth':
-          results = await backendTests.runAuthenticationTests()
-          break
-        case 'sos':
-          results = await backendTests.runSOSTests()
-          break
-        case 'location':
-          results = await backendTests.runLocationTests()
-          break
-        case 'offline':
-          results = await backendTests.runOfflineQueueTests()
-          break
-        case 'security':
-          results = await backendTests.runSecurityTests()
-          break
-        default:
-          results = await backendTests.runAllTests()
-      }
-
-      const report = generateTestReport(results)
-      setTestResults(report)
-    } catch (error) {
-      console.error('Test execution failed:', error)
+      const results = selectedCategory === 'all'
+        ? await backendTests.runAllTests()
+        : selectedCategory === 'auth'
+          ? await backendTests.runAuthenticationTests()
+          : selectedCategory === 'sos'
+            ? await backendTests.runSOSTests()
+            : selectedCategory === 'location'
+              ? await backendTests.runLocationTests()
+              : selectedCategory === 'offline'
+                ? await backendTests.runOfflineQueueTests()
+                : await backendTests.runSecurityTests()
+      setTestResults(generateTestReport(results))
+    } catch {
+      setRunError('Backend checks could not be completed. Check your connection and try again.')
     } finally {
       setIsRunning(false)
     }
@@ -50,149 +52,94 @@ export function BackendTestRunner() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'PASS':
-        return <CheckCircle2 className="w-5 h-5 text-green-600" />
-      case 'FAIL':
-        return <XCircle className="w-5 h-5 text-destructive" />
-      case 'WARN':
-        return <AlertCircle className="w-5 h-5 text-accent" />
-      default:
-        return null
+      case 'PASS': return <CheckCircle2 aria-hidden="true" className="size-5 text-primary" />
+      case 'FAIL': return <XCircle aria-hidden="true" className="size-5 text-destructive" />
+      case 'WARN': return <AlertCircle aria-hidden="true" className="size-5 text-muted-foreground" />
+      default: return null
     }
   }
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="bg-gradient-to-r from-secondary/5 to-primary/5 border-b border-border">
+    <Card>
+      <CardHeader className="border-b border-border bg-gradient-to-r from-secondary/5 to-primary/5">
         <CardTitle className="flex items-center gap-2">
-          <Play className="w-5 h-5 text-secondary" />
-          Backend Test Suite
+          <Play aria-hidden="true" className="size-5 text-secondary" />
+          Backend connection checks
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="space-y-6">
-          {/* Test Category Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-semibold">Test Category</label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {[
-                { id: 'all', label: 'All Tests' },
-                { id: 'auth', label: 'Authentication' },
-                { id: 'sos', label: 'SOS System' },
-                { id: 'location', label: 'Location' },
-                { id: 'offline', label: 'Offline Queue' },
-                { id: 'security', label: 'Security' },
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id as any)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ease-out ${
-                    selectedCategory === cat.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80 text-foreground'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
+      <CardContent className="flex flex-col gap-5 pt-6">
+        <p className="text-sm text-muted-foreground">
+          Checks are read-only. They never create SOS alerts, send SMS, access GPS, or write browser storage.
+        </p>
+
+        <div className="flex max-w-sm flex-col gap-2">
+          <Label htmlFor="backend-check-category">Test category</Label>
+          <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as TestCategory)}>
+            <SelectTrigger id="backend-check-category">
+              <SelectValue placeholder="Choose checks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>{category.label}</SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button onClick={handleRunTests} disabled={isRunning}>
+          {isRunning ? <Loader aria-hidden="true" className="animate-spin" data-icon="inline-start" /> : <Play aria-hidden="true" data-icon="inline-start" />}
+          {isRunning ? 'Checking backend…' : 'Run checks'}
+        </Button>
+
+        {runError && (
+          <Alert role="alert" className="border-destructive/30 bg-destructive/10">
+            <AlertDescription>{runError}</AlertDescription>
+          </Alert>
+        )}
+
+        {testResults && (
+          <div className="flex flex-col gap-4" aria-live="polite">
+            <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted/50 p-4 text-center sm:grid-cols-4">
+              <div><p className="text-2xl font-bold text-primary">{testResults.summary.passed}</p><p className="text-xs text-muted-foreground">Passed</p></div>
+              <div><p className="text-2xl font-bold text-destructive">{testResults.summary.failed}</p><p className="text-xs text-muted-foreground">Failed</p></div>
+              <div><p className="text-2xl font-bold text-muted-foreground">{testResults.summary.warnings}</p><p className="text-xs text-muted-foreground">Warnings</p></div>
+              <div><p className="text-2xl font-bold">{testResults.summary.successRate}</p><p className="text-xs text-muted-foreground">Pass rate</p></div>
             </div>
-          </div>
 
-          {/* Run Tests Button */}
-          <Button
-            onClick={handleRunTests}
-            disabled={isRunning}
-            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-6"
-            size="lg"
-          >
-            {isRunning ? (
-              <>
-                <Loader className="w-4 h-4 mr-2 animate-spin" />
-                Running Tests...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-2" />
-                Run Tests
-              </>
-            )}
-          </Button>
-
-          {/* Test Results */}
-          {testResults && (
-            <div className="space-y-4 animate-in slide-in-from-bottom duration-300">
-              {/* Summary */}
-              <div className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-secondary">{testResults.summary.passed}</p>
-                    <p className="text-xs text-muted-foreground">Passed</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-destructive">{testResults.summary.failed}</p>
-                    <p className="text-xs text-muted-foreground">Failed</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-accent">{testResults.summary.warnings}</p>
-                    <p className="text-xs text-muted-foreground">Warnings</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{testResults.summary.successRate}</p>
-                    <p className="text-xs text-muted-foreground">Success</p>
+            <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+              {testResults.results.map((result, index) => (
+                <div key={`${result.name}-${index}`} className="flex items-start gap-3 rounded-lg border border-border p-3">
+                  <div className="mt-0.5 shrink-0">{getStatusIcon(result.status)}</div>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{result.name}</span>
+                      <Badge variant={result.status === 'PASS' ? 'secondary' : result.status === 'FAIL' ? 'destructive' : 'outline'}>{result.status}</Badge>
+                    </div>
+                    <p className="break-words text-sm text-muted-foreground">{result.message}</p>
+                    <time className="text-xs text-muted-foreground" dateTime={result.timestamp}>{new Date(result.timestamp).toLocaleTimeString()}</time>
                   </div>
                 </div>
-              </div>
-
-              {/* Detailed Results */}
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {testResults.results.map((result: any, index: number) => (
-                  <div
-                    key={index}
-                    className="p-3 border border-border rounded-lg hover:bg-muted/50 transition-all duration-300 ease-out flex items-start gap-3"
-                  >
-                    <div className="flex-shrink-0 mt-1">{getStatusIcon(result.status)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-foreground">{result.name}</span>
-                        <Badge
-                          className={
-                            result.status === 'PASS'
-                              ? 'bg-green-600/10 text-green-700'
-                              : result.status === 'FAIL'
-                                ? 'bg-destructive/10 text-destructive'
-                                : 'bg-accent/10 text-accent'
-                          }
-                        >
-                          {result.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground break-words">{result.message}</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">{result.timestamp}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Export Button */}
-              <Button
-                onClick={() => {
-                  const blob = new Blob([JSON.stringify(testResults, null, 2)], {
-                    type: 'application/json',
-                  })
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url
-                  a.download = `safenet-test-report-${new Date().toISOString().split('T')[0]}.json`
-                  a.click()
-                }}
-                variant="outline"
-                className="w-full"
-              >
-                Export Report
-              </Button>
+              ))}
             </div>
-          )}
-        </div>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(testResults, null, 2)], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                const anchor = document.createElement('a')
+                anchor.href = url
+                anchor.download = `safenet-backend-checks-${new Date().toISOString().slice(0, 10)}.json`
+                anchor.click()
+                URL.revokeObjectURL(url)
+              }}
+            >
+              Export report
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

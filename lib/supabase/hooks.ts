@@ -29,6 +29,18 @@ export const EMPTY_EMERGENCY_PROFILE: EmergencyProfileData = {
   medications: '',
 }
 
+export const DEMO_EMERGENCY_PROFILE: EmergencyProfileData = {
+  name: 'SafeNet Demo User',
+  age: '35',
+  bloodGroup: 'O+',
+  medicalConditions: 'Sample condition for testing only',
+  emergencyContact1: '+12125550123',
+  emergencyContact2: '+12125550124',
+  address: 'Example Street, Sample City',
+  allergies: 'Sample allergy for testing only',
+  medications: 'Sample medication for testing only',
+}
+
 export function isEmergencyProfileComplete(profile: EmergencyProfileData) {
   return Boolean(
     profile.name.trim() &&
@@ -170,10 +182,10 @@ export function useEmergencyProfile(userId: string) {
     const emergencyContact2 = normalizePhone(profile.emergencyContact2.trim())
     const e164PhonePattern = /^\+[1-9]\d{7,14}$/
     if (!e164PhonePattern.test(emergencyContact1)) {
-      throw new Error('Enter the first emergency contact in international format, such as +14155550123.')
+      throw new Error('Enter the first emergency contact in international format with a +country code.')
     }
     if (emergencyContact2 && !e164PhonePattern.test(emergencyContact2)) {
-      throw new Error('Enter the second emergency contact in international format, such as +14155550123.')
+      throw new Error('Enter the second emergency contact in international format with a +country code.')
     }
 
     const bloodGroup = profile.bloodGroup.trim()
@@ -236,6 +248,49 @@ export function useEmergencyProfile(userId: string) {
     error,
     isLoading,
     saveProfile,
+    refresh: () => mutate(),
+  }
+}
+
+export interface SosAlertSummary {
+  id: string
+  emergencyType: string
+  urgency: string
+  status: string
+  createdAt: string
+  latitude: number | null
+  longitude: number | null
+}
+
+const SOS_HISTORY_CACHE_KEY = 'safenet/sos-history'
+
+async function loadSosAlertHistory(
+  [, userId]: readonly [string, string],
+): Promise<SosAlertSummary[]> {
+  const response = await fetch('/api/sos?limit=5', { cache: 'no-store' })
+  const result: unknown = await response.json()
+  const payload = typeof result === 'object' && result !== null
+    ? result as { alerts?: unknown; error?: unknown }
+    : {}
+
+  if (!response.ok || !Array.isArray(payload.alerts)) {
+    throw new Error(typeof payload.error === 'string' ? payload.error : 'SOS alert history could not be loaded.')
+  }
+
+  return payload.alerts as SosAlertSummary[]
+}
+
+export function useSosAlertHistory(userId: string) {
+  const key = userId ? ([SOS_HISTORY_CACHE_KEY, userId] as const) : null
+  const { data, error, isLoading, mutate } = useSWR(key, loadSosAlertHistory, {
+    revalidateOnFocus: true,
+    shouldRetryOnError: false,
+  })
+
+  return {
+    alerts: data ?? [],
+    error,
+    isLoading,
     refresh: () => mutate(),
   }
 }
